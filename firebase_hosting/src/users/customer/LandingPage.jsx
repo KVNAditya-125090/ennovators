@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Sparkles, ShoppingBag, ShieldCheck, Gavel, Truck, LifeBuoy, CheckCircle, Lock,
-  Package, Recycle, Camera, TrendingUp, MessageSquare, Server, Flame, BarChart3,
-  Database, HardDrive, Cpu, Cloud, Layers, ChevronLeft, ChevronRight
+  Sparkles, ShoppingBag, ShieldCheck, Truck, LifeBuoy, CheckCircle, Lock, ChevronLeft, ChevronRight
 } from 'lucide-react';
+
+import QueryForm from './QueryForm';
+import {
+  Repeat, TrendingUp, MessageSquare, Tag, Building2, Gavel, Recycle, Boxes, ArrowLeftRight, Timer, Mic, Leaf, Camera,
+  ShoppingCart, Wallet, QrCode, Bell, ScanLine, Wrench, Puzzle, Award, BarChart3, Scale, Star, Lightbulb, Languages, Gauge
+} from 'lucide-react';
+import { CORE_CAPABILITIES, BIDDING, REVERSE_LOGISTICS, LIFECYCLE_FEATURES } from './features';
 
 const SERVICES = [
   {
@@ -15,10 +20,11 @@ const SERVICES = [
     iconBox: 'bg-google-red-light text-google-red',
     features: [
       'Role-based access control for Owner, Consumer and Customer',
-      'Multi-tenant management and user listing',
-      'Live system health across Cloud Run, Firebase Auth, Vertex AI and Cloud SQL',
-      'GCP budget tracking with alerts and a kill switch at the cap',
-      'Looker Studio analytics on BigQuery data'
+      'Multi-tenant workspaces with team and role management for owners and sellers',
+      'Usage and quota tracking for every workspace',
+      'Live system health monitoring across every service',
+      'Budget tracking with alerts and a kill switch at the cap',
+      'Analytics dashboards on sales and spend data'
     ]
   },
   {
@@ -32,7 +38,7 @@ const SERVICES = [
       'Product catalog with condition grades and carbon footprint',
       'Customer-to-Multi-Seller live bidding',
       'Surplus auctions for excess stock',
-      'TimesFM demand forecasting with reorder points',
+      'AI demand forecasting with reorder points',
       'Stock and pricing across new, refurbished and open-box items'
     ]
   },
@@ -59,63 +65,25 @@ const SERVICES = [
     accent: 'border-t-google-yellow',
     iconBox: 'bg-google-yellow-light text-[#B06000]',
     features: [
-      'Gemini Flash AI shopping and support assistant',
+      'AI shopping and support assistant',
       'Photo-based return grading with recovery estimate and recommended channel',
-      'Secure return photo upload to Cloud Storage',
+      'Secure return photo upload',
       'Support ticket tracking with priority and status',
       'After-sales and warranty handling'
     ]
   }
 ];
 
-const JOURNEY = [
-  { icon: Package, title: 'List', text: 'Sellers publish new, refurbished and open-box products with condition grades.' },
-  { icon: Gavel, title: 'Bid', text: 'Customers post a budget and certified sellers compete in a live bidding room.' },
-  { icon: Truck, title: 'Deliver', text: 'Shipments are tracked end to end with carrier, ETA and CO2 saved.' },
-  { icon: Camera, title: 'Return', text: 'A photo is graded by AI for condition and recovery value in seconds.' },
-  { icon: Recycle, title: 'Reuse', text: 'Each item is routed to resale, refurbishment or recycling, so little is wasted.' }
-];
-
-const INTELLIGENCE = [
-  {
-    icon: MessageSquare,
-    title: 'Gemini Flash assistant',
-    text: 'A conversational assistant for shopping, bids, returns and support questions, with suggested next actions.',
-    chips: ['Product search', 'Bid help', 'Return start']
-  },
-  {
-    icon: TrendingUp,
-    title: 'TimesFM demand forecasting',
-    text: 'Zero-shot time series forecasts built on BigQuery sales history, with a recommended reorder point per SKU.',
-    chips: ['14-day outlook', 'Reorder point', 'Confidence range']
-  },
-  {
-    icon: Camera,
-    title: 'Photo return grading',
-    text: 'Vision grading assigns a condition grade, predicts recovery value and recommends the best channel.',
-    chips: ['Grade A to C', 'Recovery %', 'Channel routing']
-  }
-];
-
-const STACK = [
-  { icon: Cloud, name: 'Firebase Hosting', text: 'Serves the web app and routes API calls' },
-  { icon: BarChart3, name: 'Looker Studio', text: 'Owner analytics dashboards' },
-  { icon: Server, name: 'Cloud Run', text: 'Serverless API for all four services' },
-  { icon: Cpu, name: 'Vertex AI', text: 'Gemini Flash, TimesFM and TabFM' },
-  { icon: Layers, name: 'BigQuery', text: 'Sales history and spend analytics' },
-  { icon: Database, name: 'Cloud SQL', text: 'Tenants, users and roles' },
-  { icon: Flame, name: 'Firestore', text: 'Products, shipments and tickets' },
-  { icon: HardDrive, name: 'Cloud Storage', text: 'Return photos and media' }
-];
-
 const SECTION = 'w-full px-4 sm:px-8 lg:px-12 2xl:px-20';
 
 // Illustrations live in public/images
 const BANNER_IMAGE = 'w-auto max-w-full h-[320px] sm:h-[400px] justify-self-center xl:justify-self-end rounded-2xl shadow-2xl bg-white';
+// The overview picture has no card of its own, so it sits directly on the banner
+const BANNER_IMAGE_BARE = 'w-auto max-w-full h-[340px] sm:h-[420px] justify-self-center xl:justify-self-end';
 const serviceImage = (svc) => `/images/${svc.code.toLowerCase()}.svg`;
 
 const SERVICE_PITCH = {
-  MaaS: 'Run the whole platform with confidence: who can do what, how it is performing and what it costs.',
+  MaaS: 'Run the platform and every seller workspace with confidence: who can do what, how it is performing and what it costs.',
   PaaS: 'Turn every product into a market: list it, sell it, let sellers bid for it and plan stock with AI forecasts.',
   TaaS: 'Move goods forward and back with full visibility, and route every return to its best next life.',
   SaaS: 'Answer questions, grade returns from a photo and keep every ticket moving with AI support.'
@@ -158,9 +126,6 @@ function HeroCarousel({ onOpenSignIn }) {
             <div className={`${SECTION} py-8 sm:py-10 flex items-center w-full`}>
               <div className="grid grid-cols-1 xl:grid-cols-[5fr_7fr] gap-12 items-center w-full">
                 <div className="space-y-6">
-                  <span className="inline-block px-3.5 py-1 bg-white/15 rounded-full text-xs font-semibold">
-                    Built on Google Cloud serverless
-                  </span>
                   <h1 className="text-3xl sm:text-4xl 2xl:text-5xl font-extrabold tracking-tight leading-tight">
                     Intelligent 360° <span className="google-gradient-text-light">circular commerce</span>, from first sale to final reuse
                   </h1>
@@ -171,7 +136,7 @@ function HeroCarousel({ onOpenSignIn }) {
                 <img
                   src="/images/overview.svg"
                   alt="The AuraCommerce web app: storefront with live bidding, shipment tracking, AI assistant and return grading"
-                  className={BANNER_IMAGE}
+                  className={BANNER_IMAGE_BARE}
                 />
               </div>
             </div>
@@ -244,11 +209,70 @@ function SectionHeading({ eyebrow, title, text, center }) {
   );
 }
 
+// Every feature is a tile of the colour of the service it belongs to
+const SERVICE_TILE = {
+  MaaS: 'bg-google-red-light text-google-red',
+  PaaS: 'bg-google-blue-light text-google-blue',
+  TaaS: 'bg-google-green-light text-google-green',
+  SaaS: 'bg-google-yellow-light text-[#B06000]'
+};
+
+// feature name -> its own icon and the service it belongs to
+const FEATURE_META = {
+  'End-to-end lifecycle management': { icon: Repeat, service: 'PaaS' },
+  'Inventory forecasting': { icon: TrendingUp, service: 'PaaS' },
+  'Conversational AI': { icon: MessageSquare, service: 'SaaS' },
+  'Dynamic pricing intelligence': { icon: Tag, service: 'PaaS' },
+  'Multi-tenant operations console': { icon: Building2, service: 'MaaS' },
+  [BIDDING.title]: { icon: Gavel, service: 'PaaS' },
+  [REVERSE_LOGISTICS.title]: { icon: Recycle, service: 'TaaS' },
+  'Forecast-Triggered Surplus Auctions': { icon: Boxes, service: 'PaaS' },
+  'Inter-Seller Stock Rebalancing': { icon: ArrowLeftRight, service: 'PaaS' },
+  'Shelf-Life Decay Pricing': { icon: Timer, service: 'PaaS' },
+  'Voice Counter-Offer Negotiation': { icon: Mic, service: 'SaaS' },
+  'Carbon Impact Score per Offer': { icon: Leaf, service: 'TaaS' },
+  'Snap-to-Bid Visual Search': { icon: Camera, service: 'SaaS' },
+  'Return-Risk Guidance at Checkout': { icon: ShoppingCart, service: 'SaaS' },
+  'Future Value Guarantee': { icon: Wallet, service: 'PaaS' },
+  'Digital Product Passport': { icon: QrCode, service: 'PaaS' },
+  'Predictive Trade-In Nudges': { icon: Bell, service: 'PaaS' },
+  'Photo-Based AI Condition Grading': { icon: ScanLine, service: 'SaaS' },
+  'Direct Peer Forwarding': { icon: Truck, service: 'TaaS' },
+  'Refurbisher Capacity Matching': { icon: Wrench, service: 'TaaS' },
+  'Parts Harvesting Marketplace': { icon: Puzzle, service: 'TaaS' },
+  'Circular Green Credits': { icon: Award, service: 'MaaS' },
+  'Live Circularity Scorecards': { icon: BarChart3, service: 'MaaS' },
+  'Fair-Bid Guardrails': { icon: Scale, service: 'MaaS' },
+  'Seller Trust Score': { icon: Star, service: 'MaaS' },
+  'Explainable AI Decisions': { icon: Lightbulb, service: 'MaaS' },
+  'Multilingual Voice Commerce': { icon: Languages, service: 'SaaS' },
+  'Budget-Governed AI Serving': { icon: Gauge, service: 'MaaS' }
+};
+
+// Every feature, in one list: no groups, no categories
+const ALL_FEATURES = (() => {
+  const all = [
+    ...CORE_CAPABILITIES.map((item) => ({ name: item.title, text: item.text })),
+    { name: BIDDING.title, text: BIDDING.intro },
+    { name: REVERSE_LOGISTICS.title, text: REVERSE_LOGISTICS.intro },
+    ...LIFECYCLE_FEATURES.flatMap((group) => group.features.map((feature) => ({ name: feature.name, text: feature.text })))
+  ];
+  const seen = new Set();
+  return all
+    .filter((feature) => {
+      const key = feature.name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((feature) => ({ ...feature, ...FEATURE_META[feature.name] }));
+})();
+
 export default function LandingPage({ onOpenSignIn }) {
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="app-shell bg-white flex flex-col font-sans">
       {/* Top Header */}
-      <header className="bg-white/95 backdrop-blur-sm border-b border-google-gray-200 sticky top-0 z-40">
+      <header className="shrink-0 bg-white border-b border-google-gray-200 z-40">
         <div className={SECTION}>
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -267,43 +291,18 @@ export default function LandingPage({ onOpenSignIn }) {
         <div className="h-1 google-gradient" />
       </header>
 
-      <main>
+      <main id="app-scroll" className="relative flex-1 min-h-0 overflow-y-auto">
         {/* Hero carousel */}
         <HeroCarousel onOpenSignIn={onOpenSignIn} />
-
-        {/* Journey */}
-        <section id="journey" className="bg-white">
-          <div className={`${SECTION} py-20`}>
-            <SectionHeading
-              center
-              eyebrow="How it works"
-              title="The circular journey of every product"
-              text="Five connected steps keep products in use longer and cut waste."
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-              {JOURNEY.map((step, index) => (
-                <div key={step.title} className="google-card p-6 relative">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-google-teal-surface text-google-teal rounded-xl">
-                      <step.icon className="h-6 w-6" />
-                    </div>
-                    <span className="text-3xl font-extrabold text-google-gray-200">{String(index + 1).padStart(2, '0')}</span>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">{step.title}</h3>
-                  <p className="text-sm text-google-gray-600 leading-relaxed">{step.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* Services */}
         <section id="services" className="bg-google-gray-50 border-y border-google-gray-200">
           <div className={`${SECTION} py-20`}>
             <SectionHeading
-              eyebrow="Platform services"
-              title="Four services, one connected platform"
-              text="Each service can be operated on its own and works with the others through shared data."
+              center
+              eyebrow="What we provide"
+              title="Services"
+              text="Four services, one connected platform. Each can run on its own and works with the others through shared data."
             />
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               {SERVICES.map((svc) => (
@@ -315,7 +314,7 @@ export default function LandingPage({ onOpenSignIn }) {
                     </div>
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-google-gray-600">{svc.code}</div>
-                      <h3 className="font-bold text-lg text-google-gray-900 leading-tight">{svc.title}</h3>
+                      <h4 className="font-bold text-lg text-google-gray-900 leading-tight">{svc.title}</h4>
                     </div>
                   </div>
                   <p className="text-sm text-google-gray-600 mb-4">{svc.summary}</p>
@@ -333,66 +332,45 @@ export default function LandingPage({ onOpenSignIn }) {
           </div>
         </section>
 
-        {/* Intelligence */}
-        <section id="intelligence" className="bg-white">
+        {/* Features */}
+        <section id="features" className="bg-white">
           <div className={`${SECTION} py-20`}>
             <SectionHeading
               center
-              eyebrow="Intelligence"
-              title="AI built into every step"
-              text="Vertex AI models assist shoppers, sellers and operators without extra tools."
+              eyebrow="What you get"
+              title="Features"
+              text="From first sale to final reuse, every stage of a product's life is covered."
             />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {INTELLIGENCE.map((item) => (
-                <div key={item.title} className="google-card p-8">
-                  <div className="p-3 bg-google-blue-light text-google-blue rounded-xl w-fit mb-5">
-                    <item.icon className="h-7 w-7" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {ALL_FEATURES.map((feature) => (
+                <div key={feature.name} className="google-card p-6 flex flex-col">
+                  <div className={`p-3 rounded-xl w-fit mb-4 ${SERVICE_TILE[feature.service]}`}>
+                    <feature.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="font-bold text-xl mb-2">{item.title}</h3>
-                  <p className="text-sm text-google-gray-600 leading-relaxed mb-5">{item.text}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {item.chips.map((chip) => (
-                      <span key={chip} className="google-pill bg-google-gray-100 text-google-gray-800">{chip}</span>
-                    ))}
-                  </div>
+                  <h4 className="font-bold text-base text-google-gray-900 mb-2">{feature.name}</h4>
+                  <p className="text-sm text-google-gray-600 leading-relaxed">{feature.text}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Platform / Google Cloud stack */}
-        <section id="platform" className="bg-white">
-          <div className={`${SECTION} py-20`}>
-            <SectionHeading
-              center
-              eyebrow="Platform"
-              title="Built on Google Cloud"
-              text="Serverless services that scale to zero when idle and grow with demand."
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-              {STACK.map((item) => (
-                <div key={item.name} className="google-card p-6 flex items-start gap-4">
-                  <div className="p-3 bg-google-gray-100 text-google-teal rounded-xl shrink-0">
-                    <item.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base">{item.name}</h3>
-                    <p className="text-sm text-google-gray-600 mt-1">{item.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Anyone can ask a question; the team replies by email or phone */}
+        <section id="query" className="bg-google-gray-50 border-t border-google-gray-200">
+          <div className={`${SECTION} py-16`}>
+            <SectionHeading eyebrow="Ask a query" title="Have a query? Contact us" text="Send your details and your question. We will reply by email, or give you a call." center />
+            <QueryForm />
           </div>
         </section>
 
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-google-gray-200 py-8">
+      <footer className="shrink-0 bg-white border-t border-google-gray-200 py-8">
         <div className={`${SECTION} flex flex-col sm:flex-row justify-between items-center text-sm text-google-gray-600 gap-4`}>
           <div>
-            <span className="font-bold text-google-teal">AuraCommerce 360</span> • GCP Circular Commerce Platform
+            <span className="font-bold text-google-teal">AuraCommerce 360</span> • Circular Commerce Platform
           </div>
         </div>
       </footer>

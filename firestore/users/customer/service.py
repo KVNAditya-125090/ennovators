@@ -12,3 +12,7 @@ def browse_catalog() -> List[Dict[str, Any]]:
 
 def my_tickets() -> List[Dict[str, Any]]:
     return firestore_saas.list_tickets()
+
+def submit_query(name: str, email: str, mobile: str, message: str) -> Dict[str, Any]:
+    """A query sent from the home page by anyone, signed in or not."""
+    return firestore_saas.add_query(name, email, mobile, message)

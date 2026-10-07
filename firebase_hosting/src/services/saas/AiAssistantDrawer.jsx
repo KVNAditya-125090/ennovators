@@ -4,7 +4,7 @@ import { X, Sparkles, Send, Camera, CheckCircle, RefreshCw, MessageSquare } from
 
 export default function AiAssistantDrawer({ isOpen, onClose }) {
   const [messages, setMessages] = useState([
-    { sender: 'ai', text: 'Hello! I am your Gemini Flash Conversational Assistant. How can I help you with shopping, returns, or circular trade-ins today?' }
+    { sender: 'ai', text: 'Hello! I am your AI shopping assistant. How can I help you with shopping, returns, or circular trade-ins today?' }
   ]);
   const [inputText, setInputText] = useState('');
   const [triageResult, setTriageResult] = useState(null);
@@ -24,7 +24,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
 
       setMessages(prev => [...prev, { sender: 'ai', text: res.reply, actions: res.suggested_actions }]);
     } catch (err) {
-      setMessages(prev => [...prev, { sender: 'ai', text: 'Vertex AI Gemini Flash Mock: I can assist with product search, returns, or live multi-seller bids!' }]);
+      setMessages(prev => [...prev, { sender: 'ai', text: 'I can assist with product search, returns, or live multi-seller bids!' }]);
     } finally {
       setIsTyping(false);
     }
@@ -39,7 +39,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
       setMessages(prev => [
         ...prev,
         { sender: 'user', text: 'Uploaded return photo for AI condition grading' },
-        { sender: 'ai', text: `Gemini Flash & TabFM visual triage complete! Result: ${res.ai_evaluated_grade}. Recommended Route: ${res.recommended_channel}.` }
+        { sender: 'ai', text: `Photo condition grading complete! Result: ${res.ai_evaluated_grade}. Recommended Route: ${res.recommended_channel}.` }
       ]);
     } catch (err) {
       console.warn('Triage error:', err);
@@ -56,7 +56,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
           <div className="flex items-center space-x-2">
             <Sparkles className="h-5 w-5" />
             <div>
-              <h3 className="font-bold text-sm">Gemini Flash AI Assistant</h3>
+              <h3 className="font-bold text-sm">AI Assistant</h3>
               <p className="text-[10px] text-white/80">Support as a Service (SaaS)</p>
             </div>
           </div>
@@ -96,7 +96,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
           {isTyping && (
             <div className="flex justify-start">
               <div className="bg-white border border-google-gray-200 rounded-2xl p-3 text-xs text-google-gray-500 animate-pulse">
-                Gemini Flash is generating response...
+                Generating response...
               </div>
             </div>
           )}

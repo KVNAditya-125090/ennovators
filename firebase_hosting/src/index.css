@@ -8,7 +8,14 @@
   }
   body {
     @apply bg-google-gray-50 text-google-gray-900 font-sans;
+    overflow: hidden;
   }
+}
+
+/* Header and footer stay put; the page body scrolls between them */
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
 }
 
 .google-card {

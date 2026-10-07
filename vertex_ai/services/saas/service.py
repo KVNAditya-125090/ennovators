@@ -16,28 +16,28 @@ class VertexAISaaS:
 
         if "return" in msg_lower or "refund" in msg_lower:
             return {
-                "source": "Vertex AI (Gemini Flash Mock)",
+                "source": "AI Assistant",
                 "reply": "I can help you initiate a return or trade-in for your item. Would you like to upload a photo for AI condition grading, or receive an instant trade-in quote?",
                 "suggested_actions": ["Upload Return Photo", "Check Guaranteed Buy-Back", "Chat with Support Agent"],
                 "intent": "RETURN_INITIATION"
             }
         elif "bid" in msg_lower or "price" in msg_lower or "buy" in msg_lower:
             return {
-                "source": "Vertex AI (Gemini Flash Mock)",
+                "source": "AI Assistant",
                 "reply": "I found 3 certified sellers currently active in the Customer-to-Multi-Seller Bidding room for this item! The current lowest offer starts at $145.00 with 2-day eco delivery.",
                 "suggested_actions": ["Open Live Bidding Room", "Filter by Carbon Impact", "View Refurbished Options"],
                 "intent": "BIDDING_SEARCH"
             }
         elif "forecast" in msg_lower or "demand" in msg_lower:
             return {
-                "source": "Vertex AI (TimesFM / TabFM Mock)",
-                "reply": "TimesFM zero-shot demand model predicts a 34% surge in regional demand over the next 14 days. Reorder threshold is set at 45 units.",
+                "source": "AI Assistant",
+                "reply": "The demand forecast predicts a 34% surge in regional demand over the next 14 days. Reorder threshold is set at 45 units.",
                 "suggested_actions": ["Trigger Stock Rebalance", "Open Surplus Auction"],
                 "intent": "FORECAST_QUERY"
             }
         else:
             return {
-                "source": "Vertex AI (Gemini Flash Mock)",
+                "source": "AI Assistant",
                 "reply": "Welcome to AuraCommerce 360! I am your AI Shopping & Circularity Assistant. How can I assist you with products, multi-seller bidding, or circular returns today?",
                 "suggested_actions": ["Explore Product Catalog", "Check Active Bids", "Track Reverse Shipment"],
                 "intent": "GENERAL_ASSISTANCE"
@@ -62,7 +62,7 @@ class VertexAISaaS:
             "predicted_recovery_percentage": recovery_val,
             "recommended_channel": channel_mapping.get(selected_grade, "Certified Recycling"),
             "carbon_saved_kg": round(random.uniform(2.5, 12.0), 2),
-            "reasoning": "Gemini Flash visual analysis detected minimal surface blemishes. TabFM estimates high demand in secondary market."
+            "reasoning": "Visual analysis detected minimal surface blemishes. Demand in the secondary market is estimated to be high."
         }
 
 vertex_saas = VertexAISaaS()

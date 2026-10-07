@@ -49,7 +49,7 @@ def get_demand_forecast(sku: str) -> Dict[str, Any]:
     forecast_data = vertex_paas.predict_demand_timesfm(sku, history)
     return {
         "sku": sku,
-        "model": "TimesFM Zero-Shot Forecast (Quantized CPU)",
+        "model": "AI demand forecast",
         "recommended_reorder_point": 18,
         "forecast_period": "14 Days",
         "daily_forecast": forecast_data

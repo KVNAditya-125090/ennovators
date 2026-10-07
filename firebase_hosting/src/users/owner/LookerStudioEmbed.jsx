@@ -11,13 +11,13 @@ export default function LookerStudioEmbed() {
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-bold text-google-gray-900 flex items-center space-x-2">
           <BarChart3 className="h-5 w-5 text-google-teal" />
-          <span>Analytics (Looker Studio)</span>
+          <span>Analytics</span>
         </h3>
-        <span className="google-pill bg-google-blue-light text-google-blue-dark">BigQuery</span>
+        <span className="google-pill bg-google-blue-light text-google-blue-dark">Live data</span>
       </div>
       {LOOKER_URL ? (
         <iframe
-          title="Looker Studio report"
+          title="Analytics report"
           src={LOOKER_URL}
           className="w-full h-[480px] rounded-xl border border-google-gray-200"
           allowFullScreen
@@ -25,7 +25,7 @@ export default function LookerStudioEmbed() {
         />
       ) : (
         <div className="h-40 flex items-center justify-center rounded-xl border border-dashed border-google-gray-200 text-sm text-google-gray-600">
-          Set VITE_LOOKER_STUDIO_URL to embed your Looker Studio report.
+          The analytics dashboard has not been connected yet.
         </div>
       )}
     </div>

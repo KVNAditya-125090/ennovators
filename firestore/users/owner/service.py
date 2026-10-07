@@ -1,19 +1,18 @@
 """
 Firestore - Owner
-The Owner operates all four services, so it oversees every collection:
-PaaS products, TaaS shipments and SaaS tickets.
+The Owner is the product developer. Orders and shipments belong to the consumers and their customers,
+so the Owner has no access to them here. The Owner does see the support tickets that consumers
+raise with the platform team, and the queries visitors send from the home page.
 """
 
-from typing import Dict, Any, List
-from firestore.services.paas import firestore_paas
-from firestore.services.taas import firestore_taas
+from typing import Dict, Any, List, Optional
 from firestore.services.saas import firestore_saas
 
-def list_products() -> List[Dict[str, Any]]:
-    return firestore_paas.list_products()
+def list_platform_tickets() -> List[Dict[str, Any]]:
+    return firestore_saas.list_platform_tickets()
 
-def list_shipments() -> List[Dict[str, Any]]:
-    return firestore_taas.list_shipments()
+def list_queries() -> List[Dict[str, Any]]:
+    return firestore_saas.list_queries()
 
-def list_tickets() -> List[Dict[str, Any]]:
-    return firestore_saas.list_tickets()
+def update_query(query_id: str, status: str) -> Optional[Dict[str, Any]]:
+    return firestore_saas.update_query(query_id, status)

@@ -1,12 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { Package, TrendingUp, Truck, Gavel, RefreshCw, CheckCircle, ArrowRight, BarChart2 } from 'lucide-react';
+import { Package, TrendingUp, Truck, Gavel, RefreshCw, CheckCircle, ArrowRight, BarChart2, Building2, Users, Lock } from 'lucide-react';
 import { getDashboard } from './api';
 
-export default function ConsumerView() {
+// Shown where the Owner has switched an API off for this workspace
+function DisabledNotice({ name }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-dashed border-google-gray-300 bg-google-gray-50 px-4 py-4 text-sm text-google-gray-700">
+      <Lock className="h-4 w-4 mt-0.5 shrink-0 text-google-gray-500" />
+      <span>The <strong>{name}</strong> API is switched off for your workspace. Contact the platform owner to turn it on.</span>
+    </div>
+  );
+}
+
+function UsageMeter({ label, used, total, unit }) {
+  const percent = total ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-xs text-google-gray-600 mb-1.5">
+        <span>{label}</span>
+        <span className="font-semibold text-google-gray-900">{used.toLocaleString()} / {total.toLocaleString()} {unit}</span>
+      </div>
+      <div className="h-2 rounded-full bg-google-gray-200 overflow-hidden">
+        <div className="h-full rounded-full google-gradient" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
+export default function ConsumerView({ tenant }) {
   const [products, setProducts] = useState([]);
   const [shipments, setShipments] = useState([]);
   const [forecastSku, setForecastSku] = useState('SKU-WATCH-G3');
   const [forecastData, setForecastData] = useState(null);
+  const [workspace, setWorkspace] = useState(null);
+  const [disabled, setDisabled] = useState([]);
   const [auctionMessage, setAuctionMessage] = useState('');
 
   useEffect(() => {
@@ -15,10 +42,12 @@ export default function ConsumerView() {
 
   const fetchData = async () => {
     try {
-      const dashboard = await getDashboard(forecastSku);
-      setProducts(dashboard.products);
-      setShipments(dashboard.shipments);
+      const dashboard = await getDashboard(forecastSku, tenant);
+      setProducts(dashboard.products ?? []);
+      setShipments(dashboard.shipments ?? []);
+      setDisabled(dashboard.disabled_apis ?? []);
       setForecastData(dashboard.forecast);
+      setWorkspace(dashboard.workspace);
     } catch (err) {
       console.warn('API fetch error:', err);
     }
@@ -37,6 +66,9 @@ export default function ConsumerView() {
           <div>
             <div className="flex gap-2 mb-2">
               <span className="px-3 py-1 bg-white/20 text-white rounded-full text-xs font-semibold backdrop-blur-xs">
+                MaaS — Management as a Service
+              </span>
+              <span className="px-3 py-1 bg-white/20 text-white rounded-full text-xs font-semibold backdrop-blur-xs">
                 PaaS — Product as a Service
               </span>
               <span className="px-3 py-1 bg-white/20 text-white rounded-full text-xs font-semibold backdrop-blur-xs">
@@ -45,7 +77,7 @@ export default function ConsumerView() {
             </div>
             <h1 className="text-2xl font-bold">Consumer Operations & Inventory Console</h1>
             <p className="text-sm text-white/90 mt-1 max-w-2xl">
-              Consumes services to list, sell, buy products, monitor TimesFM zero-shot demand forecasts, open surplus auctions, and manage cradle-to-cradle transport logistics.
+              Consumes services to manage your workspace and team, list, sell and buy products, monitor AI demand forecasts, open surplus auctions, and run cradle-to-cradle transport logistics.
             </p>
           </div>
           <div className="bg-white/10 p-3 rounded-xl backdrop-blur-xs hidden md:block">
@@ -60,7 +92,49 @@ export default function ConsumerView() {
             <CheckCircle className="h-5 w-5 text-google-green" />
             <span>{auctionMessage}</span>
           </div>
-          <span className="text-xs text-google-gray-600">Firestore Real-time Active</span>
+          <span className="text-xs text-google-gray-600">Real-time updates active</span>
+        </div>
+      )}
+
+      {/* Workspace & team (Management as a Service) */}
+      {workspace && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="google-card p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-google-gray-900 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-google-teal" />
+                <span>Your Workspace</span>
+              </h3>
+              <span className="google-pill bg-google-green-light text-google-green">{workspace.tenant.status}</span>
+            </div>
+            <div className="text-xl font-bold text-google-gray-900">{workspace.tenant.name}</div>
+            <div className="text-sm text-google-gray-600 mb-5">{workspace.tenant.type}</div>
+            <div className="space-y-4">
+              <UsageMeter label="AI requests this month" used={workspace.usage.ai_requests_used} total={workspace.usage.ai_requests_quota} unit="" />
+              <UsageMeter label="Storage" used={workspace.usage.storage_used_gb} total={workspace.usage.storage_quota_gb} unit="GB" />
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 google-card p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-google-gray-900 flex items-center gap-2">
+                <Users className="h-5 w-5 text-google-teal" />
+                <span>Team & Access</span>
+              </h3>
+              <span className="google-pill bg-google-blue-light text-google-blue-dark">Role-based access</span>
+            </div>
+            <div className="divide-y divide-google-gray-200">
+              {workspace.members.map((member) => (
+                <div key={member.user_id} className="py-3 flex justify-between items-center">
+                  <div>
+                    <div className="font-semibold text-google-gray-900 text-sm">{member.name}</div>
+                    <div className="text-xs text-google-gray-600">{member.email}</div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-google-gray-100 text-google-gray-800">{member.role}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -79,6 +153,7 @@ export default function ConsumerView() {
             <span className="google-pill bg-google-teal-surface text-google-teal">Live Catalog</span>
           </div>
 
+          {disabled.includes('product-catalog') && <DisabledNotice name="Product Catalog" />}
           <div className="space-y-3">
             {products.map((item) => (
               <div key={item.id} className="p-4 border border-google-gray-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-google-teal transition-all">
@@ -113,19 +188,21 @@ export default function ConsumerView() {
           </div>
         </div>
 
-        {/* TimesFM Forecasting Widget */}
+        {/* Demand Forecasting Widget */}
         <div className="google-card p-6 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-bold text-lg text-google-gray-900 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-google-teal" />
-                <span>TimesFM Forecast</span>
+                <span>Demand Forecast</span>
               </h3>
               <span className="google-pill bg-google-teal-surface text-google-teal">Quantized CPU</span>
             </div>
             <p className="text-xs text-google-gray-600 mb-4">
               Zero-shot time series AI model predicting regional demand surge to prevent stock-outs & overstock.
             </p>
+
+            {disabled.includes('demand-forecast') && <DisabledNotice name="Demand Forecasting" />}
 
             {forecastData && (
               <div className="bg-google-gray-50 p-4 rounded-xl border border-google-gray-200 space-y-3">
@@ -157,7 +234,7 @@ export default function ConsumerView() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-google-gray-200 text-xs text-google-gray-600 flex justify-between items-center">
-            <span>Model: TimesFM 1.0</span>
+            <span>AI demand model</span>
             <span className="text-google-green font-semibold">Zero-shot Ready</span>
           </div>
         </div>
@@ -176,6 +253,7 @@ export default function ConsumerView() {
           <span className="google-pill bg-google-blue-light text-google-blue-dark">Real-time Carrier Network</span>
         </div>
 
+        {disabled.includes('shipment-tracking') && <DisabledNotice name="Shipment Tracking" />}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {shipments.map((shp) => (
             <div key={shp.shipment_id} className="p-4 rounded-xl border border-google-gray-200 bg-google-gray-50 hover:bg-white transition-all">

@@ -3,6 +3,7 @@ Customer Router - utilizes the services via the consumer (storefront, support, A
 """
 
 from fastapi import APIRouter, Body
+from cloud_run.users.customer.schemas import QueryIn
 from typing import Dict, Any
 from firestore.users import customer as firestore
 from vertex_ai.users import customer as vertex_ai
@@ -16,6 +17,12 @@ def get_storefront() -> Dict[str, Any]:
         "products": firestore.browse_catalog(),
         "tickets": firestore.my_tickets()
     }
+
+@router.post("/queries", status_code=201)
+def send_query(query: QueryIn) -> Dict[str, Any]:
+    """Anyone can ask a question from the home page. The team replies by email or phone."""
+    saved = firestore.submit_query(query.name.strip(), query.email.strip(), query.mobile.strip(), query.message.strip())
+    return {"query_id": saved["query_id"], "status": saved["status"]}
 
 @router.post("/assistant")
 def ask_assistant(data: Dict[str, Any] = Body(...)) -> Dict[str, Any]:

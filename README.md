@@ -67,7 +67,7 @@ Request flow: Firebase Hosting / Looker Studio -> Cloud Run -> Vertex AI -> BigQ
 Every folder is split the same way, following the actor/service diagram:
 
 - `services/` holds logic for the four services: **MaaS** (role access, user listing, databases), **PaaS** (list, sell and buy products), **TaaS** (move goods A to B), **SaaS** (queries, after-sales, repairs).
-- `users/` holds what each of the three actors uses: **Owner** (operates all four services), **Consumer** (consumes the services), **Customer** (utilizes the services via the consumer).
+- `users/` holds what each of the three actors uses: **Owner** (the developer of the product), **Consumer** (consumes the services), **Customer** (utilizes the services via the consumer).
 
 Every GCP folder has all four service folders and all three user folders, so new APIs and features have a place to land:
 
@@ -104,15 +104,15 @@ The table lists what each file contains today:
 | `cloud_run/` | maas, paas, taas, saas routers (`/api/v1/<service>/...`) | owner, consumer, customer routers (`/api/v1/<user>/...`) |
 | `firebase_hosting/src/` | maas.js, paas.js, taas.js, saas.js API clients | owner, consumer, customer views plus each one's api.js |
 | `vertex_ai/` | saas (chat, photo grading), paas (forecast) | consumer, customer |
-| `bigquery/` | maas (budget), paas (demand history) | owner, consumer |
-| `cloud_sql/` | maas (tenants, users) | owner |
+| `bigquery/` | maas (budget, workspace usage), paas (demand history) | owner, consumer |
+| `cloud_sql/` | maas (tenants, users, workspaces) | owner, consumer |
 | `firestore/` | paas (products), taas (shipments), saas (tickets) | consumer, customer |
 | `cloud_storage/` | saas (return photos) | customer |
 
 The data services are keyless mocks; each class is the swap point for the real client library.
 
 ### 1. Actor Portals (Image 2 Layout)
-- **Owner**: Operates all four services (MaaS, PaaS, TaaS, SaaS) — user RBAC, multi-tenant matrix, GCP 3-month budget alerts ($120 cap).
+- **Owner**: The developer of the product. Sees every consumer, their details and costs, and switches any API on or off for any consumer at any time. Does not track consumers' orders or tickets.
 - **Consumer**: Consumes the services — Product as a Service (PaaS) catalog, surplus auctions, TimesFM demand forecasting, Transport as a Service (TaaS) logistics.
 - **Customer**: Utilizes services via consumer — Shopping storefront, Customer-to-Multi-Seller Bidding Protocol, Gemini Flash AI assistant, photo return triage.
 
@@ -137,6 +137,20 @@ npm install
 npm run dev
 ```
 - App preview URL: `http://localhost:3000`
+
+---
+
+## 🔐 Sign-in (preview)
+
+There is one sign-in form. The account decides the role, and the role decides which portal opens, so there is no role picker and no role switcher after sign-in.
+
+| Account | Password | Opens |
+|---------|----------|-------|
+| `admin@auracommerce.io` | `Owner@123` | Owner portal |
+| `seller@greencycle.com` | `Seller@123` | Consumer portal |
+| `customer@gmail.com` | `Customer@123` | Customer storefront |
+
+These are demo accounts held in `cloud_sql/services/maas/service.py` and checked by `POST /api/v1/maas/auth/login`. The API does not issue sessions or tokens yet, so replace this with real authentication (for example Firebase Authentication) before any production use.
 
 ---
 

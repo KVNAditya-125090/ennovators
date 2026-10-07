@@ -71,7 +71,7 @@ export default function BiddingModal({ product, onClose }) {
               <div className="p-3 bg-google-teal-surface/50 rounded-xl text-xs text-google-teal-dark border border-google-teal-light/40 flex items-start space-x-2">
                 <Sparkles className="h-4 w-4 text-google-teal shrink-0 mt-0.5" />
                 <span>
-                  The Bidding Engine will open a Firestore live room and invite eligible sellers (Retailer, Refurbishers & Outlets) to submit counter-offers.
+                  The Bidding Engine will open a live bidding room and invite eligible sellers (Retailer, Refurbishers & Outlets) to submit counter-offers.
                 </span>
               </div>
 
