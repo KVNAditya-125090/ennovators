@@ -10,17 +10,17 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Vite & Frontend Build Assets
-frontend/dist/
-frontend/dist-ssr/
-frontend/.vite/
+firebase_hosting/dist/
+firebase_hosting/dist-ssr/
+firebase_hosting/.vite/
 *.local
 
 # Python Virtual Environments & Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
-backend/venv/
-backend/.venv/
+cloud_run/venv/
+cloud_run/.venv/
 venv/
 .venv/
 env/
