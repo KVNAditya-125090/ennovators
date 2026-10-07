@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-google-gray-50 text-google-gray-900 font-sans;
+  }
+}
+
+.google-card {
+  @apply bg-white rounded-2xl border border-google-gray-200 shadow-sm transition-all duration-200 hover:shadow-md;
+}
+
+.google-btn-primary {
+  @apply bg-google-teal text-white font-medium px-5 py-2.5 rounded-full hover:bg-google-teal-dark shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center gap-2;
+}
+
+.google-btn-secondary {
+  @apply bg-white text-google-teal border border-google-teal font-medium px-5 py-2.5 rounded-full hover:bg-google-teal-surface transition-all duration-150 flex items-center justify-center gap-2;
+}
+
+.google-pill {
+  @apply px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5;
+}
+
