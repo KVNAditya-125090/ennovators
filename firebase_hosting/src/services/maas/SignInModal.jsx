@@ -18,11 +18,11 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-google-gray-200 relative overflow-hidden">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-google-gray-200 relative overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-start pb-4 border-b border-google-gray-200">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-google-teal to-google-blue flex items-center justify-center text-white shadow-sm">
+            <div className="h-10 w-10 rounded-xl google-gradient-diag flex items-center justify-center text-white shadow-sm">
               <Sparkles className="h-6 w-6" />
             </div>
             <div>
@@ -47,7 +47,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
               onClick={() => setSelectedRole('Customer')}
               className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                 selectedRole === 'Customer'
-                  ? 'border-google-teal bg-google-teal-surface/50 shadow-xs'
+                  ? 'border-google-teal bg-google-teal-surface/50 '
                   : 'border-google-gray-200 hover:border-google-teal/40'
               }`}
             >
@@ -70,7 +70,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
               onClick={() => setSelectedRole('Consumer')}
               className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                 selectedRole === 'Consumer'
-                  ? 'border-google-teal bg-google-teal-surface/50 shadow-xs'
+                  ? 'border-google-teal bg-google-teal-surface/50 '
                   : 'border-google-gray-200 hover:border-google-teal/40'
               }`}
             >
@@ -93,7 +93,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
               onClick={() => setSelectedRole('Owner')}
               className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                 selectedRole === 'Owner'
-                  ? 'border-google-teal bg-google-teal-surface/50 shadow-xs'
+                  ? 'border-google-teal bg-google-teal-surface/50 '
                   : 'border-google-gray-200 hover:border-google-teal/40'
               }`}
             >
@@ -114,7 +114,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
 
           <button
             onClick={handleSignIn}
-            className="w-full google-btn-primary py-3 text-sm bg-gradient-to-r from-google-teal to-google-blue mt-4"
+            className="w-full google-btn-primary py-3 text-sm bg-google-teal mt-4"
           >
             <Lock className="h-4 w-4" />
             <span>Authenticate & Access Platform</span>

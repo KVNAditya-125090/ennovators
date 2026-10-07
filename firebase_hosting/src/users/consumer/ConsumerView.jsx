@@ -32,7 +32,7 @@ export default function ConsumerView() {
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-google-teal via-google-teal-light to-google-blue rounded-2xl p-6 text-white shadow-sm">
+      <div className="google-hero rounded-2xl p-6 text-white shadow-sm">
         <div className="flex justify-between items-start">
           <div>
             <div className="flex gap-2 mb-2">

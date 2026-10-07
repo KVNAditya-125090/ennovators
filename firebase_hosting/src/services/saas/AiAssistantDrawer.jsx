@@ -38,7 +38,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
       setTriageResult(res);
       setMessages(prev => [
         ...prev,
-        { sender: 'user', text: '📸 Uploaded return photo for AI condition grading' },
+        { sender: 'user', text: 'Uploaded return photo for AI condition grading' },
         { sender: 'ai', text: `Gemini Flash & TabFM visual triage complete! Result: ${res.ai_evaluated_grade}. Recommended Route: ${res.recommended_channel}.` }
       ]);
     } catch (err) {
@@ -52,7 +52,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end animate-fade-in">
       <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between border-l border-google-gray-200">
         {/* Drawer Header */}
-        <div className="p-4 bg-gradient-to-r from-google-teal to-google-blue text-white flex justify-between items-center shadow-xs">
+        <div className="p-4 bg-google-teal text-white flex justify-between items-center ">
           <div className="flex items-center space-x-2">
             <Sparkles className="h-5 w-5" />
             <div>
@@ -72,7 +72,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
               <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
                 msg.sender === 'user'
                   ? 'bg-google-teal text-white rounded-tr-none'
-                  : 'bg-white text-google-gray-800 border border-google-gray-200 shadow-xs rounded-tl-none'
+                  : 'bg-white text-google-gray-800 border border-google-gray-200  rounded-tl-none'
               }`}>
                 {msg.text}
 

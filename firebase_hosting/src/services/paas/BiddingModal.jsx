@@ -77,7 +77,7 @@ export default function BiddingModal({ product, onClose }) {
 
               <button
                 onClick={startBidding}
-                className="w-full google-btn-primary py-3 text-sm bg-gradient-to-r from-google-teal to-google-blue"
+                className="w-full google-btn-primary py-3 text-sm bg-google-teal"
               >
                 <Gavel className="h-4 w-4" />
                 <span>Open Bidding Room Now</span>
@@ -87,7 +87,7 @@ export default function BiddingModal({ product, onClose }) {
 
           {auctionState === 'RUNNING' && (
             <div className="py-8 text-center space-y-4">
-              <div className="inline-block p-4 bg-google-teal-surface rounded-full animate-bounce">
+              <div className="inline-block p-4 bg-google-teal-surface rounded-full">
                 <Gavel className="h-8 w-8 text-google-teal" />
               </div>
               <h4 className="font-bold text-google-gray-900">Broadcasting Auction Window...</h4>

@@ -9,10 +9,10 @@ export default {
       colors: {
         google: {
           teal: {
-            DEFAULT: '#005F60',
-            dark: '#004748',
-            light: '#00897B',
-            surface: '#E6F4F1'
+            DEFAULT: '#1A73E8',
+            dark: '#174EA6',
+            light: '#4285F4',
+            surface: '#E8F0FE'
           },
           blue: {
             DEFAULT: '#4285F4',

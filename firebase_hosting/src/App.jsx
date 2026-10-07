@@ -65,7 +65,7 @@ export default function App() {
           onOpenAiAssistant={() => setIsAiDrawerOpen(true)}
         />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="w-full px-4 sm:px-8 lg:px-12 2xl:px-20 py-6">
           {activeRole === 'Owner' && <OwnerView />}
           {activeRole === 'Consumer' && <ConsumerView />}
           {activeRole === 'Customer' && (
@@ -79,7 +79,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-google-gray-200 py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs text-google-gray-600 gap-4">
+        <div className="w-full px-4 sm:px-8 lg:px-12 2xl:px-20 flex flex-col sm:flex-row justify-between items-center text-xs text-google-gray-600 gap-4">
           <div>
             <span className="font-bold text-google-teal">AuraCommerce 360</span> • GCP Serverless Platform
           </div>

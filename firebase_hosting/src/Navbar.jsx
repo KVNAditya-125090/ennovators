@@ -3,12 +3,12 @@ import { ShieldCheck, UserCheck, ShoppingBag, Server, Sparkles, LogOut, User } f
 
 export default function Navbar({ activeRole, setActiveRole, apiConnected, currentUser, onSignOut, onOpenAiAssistant }) {
   return (
-    <header className="bg-white border-b border-google-gray-200 sticky top-0 z-40 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-white border-b border-google-gray-200 sticky top-0 z-40 ">
+      <div className="w-full px-4 sm:px-8 lg:px-12 2xl:px-20">
         <div className="flex justify-between items-center h-16">
           {/* Logo & Platform Name */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-google-teal to-google-blue flex items-center justify-center text-white shadow-sm">
+            <div className="h-10 w-10 rounded-xl google-gradient-diag flex items-center justify-center text-white shadow-sm">
               <Sparkles className="h-6 w-6" />
             </div>
             <div>
@@ -28,7 +28,7 @@ export default function Navbar({ activeRole, setActiveRole, apiConnected, curren
               onClick={() => setActiveRole('Owner')}
               className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeRole === 'Owner'
-                  ? 'bg-google-teal text-white shadow-xs'
+                  ? 'bg-google-teal text-white '
                   : 'text-google-gray-700 hover:text-google-gray-900'
               }`}
             >
@@ -40,7 +40,7 @@ export default function Navbar({ activeRole, setActiveRole, apiConnected, curren
               onClick={() => setActiveRole('Consumer')}
               className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeRole === 'Consumer'
-                  ? 'bg-google-teal text-white shadow-xs'
+                  ? 'bg-google-teal text-white '
                   : 'text-google-gray-700 hover:text-google-gray-900'
               }`}
             >
@@ -52,7 +52,7 @@ export default function Navbar({ activeRole, setActiveRole, apiConnected, curren
               onClick={() => setActiveRole('Customer')}
               className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeRole === 'Customer'
-                  ? 'bg-google-teal text-white shadow-xs'
+                  ? 'bg-google-teal text-white '
                   : 'text-google-gray-700 hover:text-google-gray-900'
               }`}
             >
@@ -65,7 +65,7 @@ export default function Navbar({ activeRole, setActiveRole, apiConnected, curren
           <div className="flex items-center space-x-3">
             <button
               onClick={onOpenAiAssistant}
-              className="google-btn-primary text-xs py-2 px-3 bg-gradient-to-r from-google-teal to-google-blue hover:opacity-95"
+              className="google-btn-primary text-xs py-2 px-3 bg-google-teal hover:bg-google-teal-dark"
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Gemini Flash AI</span>

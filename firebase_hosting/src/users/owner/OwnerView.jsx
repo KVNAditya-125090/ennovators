@@ -33,7 +33,7 @@ export default function OwnerView() {
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-google-teal-dark via-google-teal to-google-blue rounded-2xl p-6 text-white shadow-sm">
+      <div className="google-hero rounded-2xl p-6 text-white shadow-sm">
         <div className="flex justify-between items-start">
           <div>
             <span className="inline-block px-3 py-1 bg-white/20 text-white rounded-full text-xs font-semibold mb-2 backdrop-blur-xs">

@@ -14,7 +14,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-google-teal via-google-blue to-google-teal-dark rounded-2xl p-6 text-white shadow-sm">
+      <div className="google-hero rounded-2xl p-6 text-white shadow-sm">
         <div className="flex justify-between items-start">
           <div>
             <span className="inline-block px-3 py-1 bg-white/20 text-white rounded-full text-xs font-semibold mb-2 backdrop-blur-xs">
@@ -77,7 +77,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
               <div>
                 <div className="relative">
                   <img src={product.image_url} alt={product.name} className="w-full h-48 object-cover group-hover:scale-105 transition-all duration-300" />
-                  <span className="absolute top-3 right-3 google-pill bg-white/90 backdrop-blur-xs text-google-teal font-semibold shadow-xs">
+                  <span className="absolute top-3 right-3 google-pill bg-white/90 backdrop-blur-xs text-google-teal font-semibold ">
                     {product.condition}
                   </span>
                 </div>
@@ -111,7 +111,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
               <div className="p-5 pt-0 space-y-2">
                 <button
                   onClick={() => onOpenBidding(product)}
-                  className="w-full google-btn-primary bg-gradient-to-r from-google-teal to-google-blue"
+                  className="w-full google-btn-primary bg-google-teal"
                 >
                   <Gavel className="h-4 w-4" />
                   <span>Start Live Multi-Seller Bid</span>

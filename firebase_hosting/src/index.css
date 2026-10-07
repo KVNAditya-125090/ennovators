@@ -3,24 +3,58 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-google-gray-50 text-google-gray-900 font-sans;
   }
 }
 
 .google-card {
-  @apply bg-white rounded-2xl border border-google-gray-200 shadow-sm transition-all duration-200 hover:shadow-md;
+  @apply bg-white rounded-xl border border-google-gray-200 shadow-sm;
 }
 
 .google-btn-primary {
-  @apply bg-google-teal text-white font-medium px-5 py-2.5 rounded-full hover:bg-google-teal-dark shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center gap-2;
+  @apply bg-google-teal text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-150 flex items-center justify-center gap-2;
+  background-image: linear-gradient(90deg, #4285F4, #34A853);
+}
+
+.google-btn-primary:hover {
+  filter: brightness(1.08);
 }
 
 .google-btn-secondary {
-  @apply bg-white text-google-teal border border-google-teal font-medium px-5 py-2.5 rounded-full hover:bg-google-teal-surface transition-all duration-150 flex items-center justify-center gap-2;
+  @apply bg-white text-google-teal border border-google-teal font-medium px-5 py-2.5 rounded-lg hover:bg-google-teal-surface transition-colors duration-150 flex items-center justify-center gap-2;
 }
 
 .google-pill {
   @apply px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5;
 }
 
+/* Google colour gradients: blue, red, yellow, green */
+.google-gradient {
+  background-image: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+}
+
+.google-gradient-diag {
+  background-image: linear-gradient(135deg, #4285F4 0%, #EA4335 35%, #FBBC04 65%, #34A853 100%);
+}
+
+.google-hero {
+  background-image: linear-gradient(120deg, #174EA6 0%, #1A73E8 40%, #1E8E3E 100%);
+}
+
+.google-gradient-text-light {
+  background-image: linear-gradient(90deg, #8AB4F8, #F28B82, #FDD663, #81C995);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.google-gradient-text {
+  background-image: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
