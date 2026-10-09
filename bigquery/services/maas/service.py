@@ -5,6 +5,7 @@ Billing-export query behind the $120 3-month budget cap (also a Looker Studio so
 
 from typing import Dict, Any, List
 import datetime
+import zlib
 import hashlib
 import random
 
@@ -32,33 +33,18 @@ HOSTING_PLAN = [
     ("Storage", 2.00),
 ]
 
-# Preview metering: API requests this month, per consumer
-API_USAGE = {
-    "t-001": {"workspace-management": 820, "usage-analytics": 310, "product-catalog": 48200, "multi-seller-bidding": 9400, "demand-forecast": 1450,
-              "shipment-tracking": 22100, "reverse-logistics": 3100, "ai-assistant": 5200, "return-grading": 1800, "return-upload": 2100, "support-tickets": 4300},
-    "t-002": {"workspace-management": 410, "usage-analytics": 90, "product-catalog": 15200, "multi-seller-bidding": 3800, "demand-forecast": 620,
-              "shipment-tracking": 8900, "reverse-logistics": 2400, "ai-assistant": 1900, "return-grading": 950, "return-upload": 700, "support-tickets": 1500},
-    "t-003": {"workspace-management": 190, "product-catalog": 6100, "multi-seller-bidding": 1700, "demand-forecast": 220,
-              "shipment-tracking": 3200, "ai-assistant": 400, "support-tickets": 650},
-}
+# Calls the gate has let through this month, counted live: {(tenant_id, path): calls}
+LIVE_CALLS: Dict[tuple, int] = {}
+
+# Preview metering per endpoint: how busy each consumer is, and how busy each kind of endpoint is
+ENDPOINT_USAGE_SCALE = {"t-001": 1.0}
+ENDPOINT_USAGE_WEIGHT = {"customer": 1.0, "system": 1.5, "consumer": 0.4, "intelligence": 0.5, "partner": 0.1}
 
 # Preview usage per tenant workspace
 WORKSPACE_USAGE = {
     "GreenCycle Refurbishers": {"ai_requests_used": 1240, "ai_requests_quota": 5000, "storage_used_gb": 3.4, "storage_quota_gb": 10},
-    "NextLife Electronics": {"ai_requests_used": 610, "ai_requests_quota": 2500, "storage_used_gb": 1.1, "storage_quota_gb": 5},
-    "Aura Eco Retail": {"ai_requests_used": 2960, "ai_requests_quota": 10000, "storage_used_gb": 6.8, "storage_quota_gb": 20},
 }
 DEFAULT_USAGE = {"ai_requests_used": 0, "ai_requests_quota": 1000, "storage_used_gb": 0.0, "storage_quota_gb": 2}
-
-# Live endpoint health from the request logs; anything not listed is healthy
-DEFAULT_HEALTH = {"state": "active", "latency_ms": 180}
-API_HEALTH = {
-    "multi-seller-bidding": {"latency_ms": 420},
-    "demand-forecast": {"state": "slow", "latency_ms": 2450},
-    "ai-assistant": {"latency_ms": 890},
-    "return-grading": {"state": "slow", "latency_ms": 3120},
-    "shipment-tracking": {"latency_ms": 260},
-}
 
 # The Google Cloud services behind the platform; a service that is responding slowly logs more warnings
 GCP_SERVICES = [
@@ -235,10 +221,6 @@ class BigQueryMaaS:
         total = sum(amount for _, amount in HOSTING_PLAN)
         return [{"name": name, "planned_usd": amount, "share": amount / total} for name, amount in HOSTING_PLAN]
 
-    def get_api_health(self, api_id: str) -> Dict[str, Any]:
-        """How an endpoint is responding right now: its state (active, slow or failing) and its 95th percentile latency in ms."""
-        return {**DEFAULT_HEALTH, **API_HEALTH.get(api_id, {})}
-
     def get_gcp_logs(self, limit: int = 60) -> List[Dict[str, Any]]:
         """The latest log lines of all the Google Cloud services together, newest first."""
         now = datetime.datetime.utcnow().replace(second=0, microsecond=0)
@@ -261,9 +243,18 @@ class BigQueryMaaS:
                 })
         return sorted(lines, key=lambda line: line["timestamp"], reverse=True)[:limit]
 
-    def get_api_usage(self, tenant_id: str) -> Dict[str, int]:
-        """API requests this month for one consumer, from the metering table."""
-        return dict(API_USAGE.get(tenant_id, {}))
+    def get_endpoint_usage(self, tenant_id: str, categories: Dict[str, str]) -> Dict[str, int]:
+        """Calls this month to each endpoint ({path: category}) for one consumer: preview sample data, plus the calls the gate has counted."""
+        scale = ENDPOINT_USAGE_SCALE.get(tenant_id, 0.1)
+        usage = {}
+        for path, category in categories.items():
+            r = (zlib.crc32(f"{tenant_id}:{path}".encode()) % 1000) / 1000
+            usage[path] = int(20000 * scale * ENDPOINT_USAGE_WEIGHT.get(category, 0.4) * r * r) + LIVE_CALLS.get((tenant_id, path), 0)
+        return usage
+
+    def record_call(self, tenant_id: str, path: str) -> None:
+        """Counts one call the gate let through. It shows in the usage and the cost at once."""
+        LIVE_CALLS[(tenant_id, path)] = LIVE_CALLS.get((tenant_id, path), 0) + 1
 
     def get_workspace_usage(self, tenant_name: str) -> Dict[str, Any]:
         """Usage against the per-workspace AI and storage quotas."""

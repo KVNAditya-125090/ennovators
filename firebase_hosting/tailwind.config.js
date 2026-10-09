@@ -8,16 +8,18 @@ export default {
     extend: {
       colors: {
         google: {
+          // Standard teal: used for highlighted text (titles, key figures, links, active items). Backgrounds use Google colours.
           teal: {
-            DEFAULT: '#1A73E8',
-            dark: '#174EA6',
-            light: '#4285F4',
-            surface: '#E8F0FE'
+            DEFAULT: '#008080',
+            dark: '#006666',
+            light: '#20A0A0',
+            surface: '#E0F2F1'
           },
           blue: {
             DEFAULT: '#4285F4',
             light: '#E8F0FE',
-            dark: '#1A73E8'
+            dark: '#1A73E8',
+            deep: '#174EA6'
           },
           red: {
             DEFAULT: '#EA4335',

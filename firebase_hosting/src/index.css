@@ -5,11 +5,46 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    font-size: 15px; /* a working density, like other admin consoles */
   }
   body {
     @apply bg-google-gray-50 text-google-gray-900 font-sans;
     overflow: hidden;
   }
+}
+
+/* Hide scrollbars everywhere (scrolling still works) */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Fit every screen: the page is never wider than the device, so there is no sideways scrolling.
+   Grid and flex children may shrink below their content (the browser default stops them), long words wrap,
+   and media and form fields never grow past their container. Wide tables scroll inside their own card. */
+html, body, #root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+.grid > *,
+.flex > .flex-1,
+.google-card {
+  min-width: 0;
+}
+.google-card {
+  max-width: 100%;
+}
+img, svg, video, canvas, iframe,
+input, select, textarea {
+  max-width: 100%;
+}
+h1, h2, h3, h4, p, dd, li {
+  overflow-wrap: anywhere;
 }
 
 /* Header and footer stay put; the page body scrolls between them */
@@ -23,7 +58,7 @@
 }
 
 .google-btn-primary {
-  @apply bg-google-teal text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-150 flex items-center justify-center gap-2;
+  @apply bg-google-blue-dark text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-150 flex items-center justify-center gap-2;
   background-image: linear-gradient(90deg, #4285F4, #34A853);
 }
 
@@ -32,7 +67,7 @@
 }
 
 .google-btn-secondary {
-  @apply bg-white text-google-teal border border-google-teal font-medium px-5 py-2.5 rounded-lg hover:bg-google-teal-surface transition-colors duration-150 flex items-center justify-center gap-2;
+  @apply bg-white text-google-teal border border-google-teal font-medium px-5 py-2.5 rounded-lg hover:bg-google-blue-light transition-colors duration-150 flex items-center justify-center gap-2;
 }
 
 .google-pill {
@@ -64,4 +99,27 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Theme: Google colours (solid or gradient) for backgrounds, standard teal for highlighted text.
+   The main action of a page gets the Google blue-to-green gradient. */
+.google-btn-gradient {
+  background-image: linear-gradient(90deg, #4285F4, #34A853);
+}
+.google-btn-gradient:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+
+/* A highlighted phrase on a dark gradient banner: white text over a Google-colour underline.
+   (Gradient-filled text is hard to read on the coloured banner.) Works across line breaks. */
+.google-underline {
+  color: #fff;
+  background-image: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+  background-repeat: no-repeat;
+  background-size: 100% 0.14em;
+  background-position: 0 100%;
+  padding-bottom: 0.06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }

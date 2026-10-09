@@ -9,7 +9,7 @@ export default function LookerStudioEmbed() {
   return (
     <div className="google-card p-5">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold text-google-gray-900 flex items-center space-x-2">
+        <h3 className="font-bold text-google-teal-dark flex items-center space-x-2">
           <BarChart3 className="h-5 w-5 text-google-teal" />
           <span>Analytics</span>
         </h3>

@@ -77,10 +77,10 @@ const SERVICES = [
 const SECTION = 'w-full px-4 sm:px-8 lg:px-12 2xl:px-20';
 
 // Illustrations live in public/images
-const BANNER_IMAGE = 'w-auto max-w-full h-[320px] sm:h-[400px] justify-self-center xl:justify-self-end rounded-2xl shadow-2xl bg-white';
-// The overview picture has no card of its own, so it sits directly on the banner
-const BANNER_IMAGE_BARE = 'w-auto max-w-full h-[340px] sm:h-[420px] justify-self-center xl:justify-self-end';
-const serviceImage = (svc) => `/images/${svc.code.toLowerCase()}.svg`;
+const BANNER_IMAGE = 'w-full h-auto sm:w-auto sm:h-[400px] max-w-full justify-self-center xl:justify-self-end rounded-2xl shadow-2xl';
+// Bump when the illustrations are redrawn (scripts/gen_illustrations.py), so browsers fetch the new pictures
+const IMAGES_VERSION = '5';
+const serviceImage = (svc) => `/images/${svc.code.toLowerCase()}.svg?v=${IMAGES_VERSION}`;
 
 const SERVICE_PITCH = {
   MaaS: 'Run the platform and every seller workspace with confidence: who can do what, how it is performing and what it costs.',
@@ -94,7 +94,7 @@ const SLIDE_INTERVAL_MS = 6000;
 
 // Banner carousel: slide 1 shows every service in one picture, then one slide per service.
 // Auto-advances, pauses on hover, and can be driven with the dots or the arrows.
-function HeroCarousel({ onOpenSignIn }) {
+function HeroCarousel() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -127,17 +127,20 @@ function HeroCarousel({ onOpenSignIn }) {
               <div className="grid grid-cols-1 xl:grid-cols-[5fr_7fr] gap-12 items-center w-full">
                 <div className="space-y-6">
                   <h1 className="text-3xl sm:text-4xl 2xl:text-5xl font-extrabold tracking-tight leading-tight">
-                    Intelligent 360° <span className="google-gradient-text-light">circular commerce</span>, from first sale to final reuse
+                    Intelligent 360° <span className="google-underline">circular commerce</span>, from first sale to final reuse
                   </h1>
                   <p className="text-lg text-white/85 leading-relaxed max-w-2xl">
                     Unify sourcing, inventory forecasting, multi-seller bidding, delivery and AI-driven returns in one connected platform, so every product gets a second life.
                   </p>
                 </div>
-                <img
-                  src="/images/overview.svg"
-                  alt="The AuraCommerce web app: storefront with live bidding, shipment tracking, AI assistant and return grading"
-                  className={BANNER_IMAGE_BARE}
-                />
+                {/* In 3D: the console leans back towards the centre, the service cards lean back towards it too */}
+                <div className="flex h-[210px] sm:h-[400px] w-full max-w-full items-center justify-center gap-2 sm:gap-4 justify-self-center xl:justify-self-end [perspective:1400px]"
+                  role="img" aria-label="The AuraCommerce 360 console with its four services, and what each one does">
+                  <img src={`/images/overview-console.svg?v=${IMAGES_VERSION}`} alt="" aria-hidden="true"
+                    className="h-[78%] w-auto min-w-0 max-w-[68%] [transform:rotateY(18deg)] [transform-origin:left_center]" />
+                  <img src={`/images/overview-cards.svg?v=${IMAGES_VERSION}`} alt="" aria-hidden="true"
+                    className="h-full w-auto min-w-0 max-w-[30%] [transform:rotateY(-18deg)] [transform-origin:right_center]" />
+                </div>
               </div>
             </div>
           </div>
@@ -152,7 +155,7 @@ function HeroCarousel({ onOpenSignIn }) {
                       {svc.code} · Service {i + 1} of {SERVICES.length}
                     </span>
                     <h2 className="text-3xl sm:text-4xl 2xl:text-5xl font-extrabold tracking-tight leading-tight">
-                      <span className="google-gradient-text-light">{svc.title}</span>
+                      <span className="google-underline">{svc.title}</span>
                     </h2>
                     <p className="text-lg text-white/85 leading-relaxed max-w-2xl">{SERVICE_PITCH[svc.code]}</p>
                   </div>
@@ -203,7 +206,7 @@ function SectionHeading({ eyebrow, title, text, center }) {
   return (
     <div className={`mb-10 ${center ? 'text-center mx-auto max-w-3xl' : 'max-w-3xl'}`}>
       <span className="inline-block text-xs font-bold text-google-teal uppercase tracking-wider mb-2 pb-1 border-b-2 border-transparent" style={{ borderImage: "linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853) 1" }}>{eyebrow}</span>
-      <h2 className="text-3xl sm:text-4xl font-bold text-google-gray-900 tracking-tight">{title}</h2>
+      <h2 className="text-3xl sm:text-4xl font-bold text-google-teal-dark tracking-tight">{title}</h2>
       {text && <p className="mt-3 text-base text-google-gray-600 leading-relaxed">{text}</p>}
     </div>
   );
@@ -275,16 +278,17 @@ export default function LandingPage({ onOpenSignIn }) {
       <header className="shrink-0 bg-white border-b border-google-gray-200 z-40">
         <div className={SECTION}>
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-xl google-gradient-diag flex items-center justify-center text-white shadow-sm">
-                <Sparkles className="h-6 w-6" />
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-xl google-gradient-diag flex items-center justify-center text-white shadow-sm">
+                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <span className="font-bold text-xl text-google-gray-900 tracking-tight">AuraCommerce 360</span>
+              <span className="whitespace-nowrap font-bold text-lg sm:text-xl text-google-gray-900 tracking-tight">AuraCommerce 360</span>
             </div>
 
-            <button onClick={() => onOpenSignIn()} className="google-btn-primary px-6 py-2 text-sm">
+            <button onClick={() => onOpenSignIn()} className="google-btn-primary shrink-0 whitespace-nowrap px-4 sm:px-6 py-2 text-sm">
               <Lock className="h-4 w-4" />
-              <span>Sign In to Platform</span>
+              <span className="sm:hidden">Sign in</span>
+              <span className="hidden sm:inline">Sign In to Platform</span>
             </button>
           </div>
         </div>
@@ -293,7 +297,7 @@ export default function LandingPage({ onOpenSignIn }) {
 
       <main id="app-scroll" className="relative flex-1 min-h-0 overflow-y-auto">
         {/* Hero carousel */}
-        <HeroCarousel onOpenSignIn={onOpenSignIn} />
+        <HeroCarousel />
 
         {/* Services */}
         <section id="services" className="bg-google-gray-50 border-y border-google-gray-200">
@@ -314,7 +318,7 @@ export default function LandingPage({ onOpenSignIn }) {
                     </div>
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-google-gray-600">{svc.code}</div>
-                      <h4 className="font-bold text-lg text-google-gray-900 leading-tight">{svc.title}</h4>
+                      <h4 className="font-bold text-lg text-google-teal-dark leading-tight">{svc.title}</h4>
                     </div>
                   </div>
                   <p className="text-sm text-google-gray-600 mb-4">{svc.summary}</p>
@@ -348,7 +352,7 @@ export default function LandingPage({ onOpenSignIn }) {
                   <div className={`p-3 rounded-xl w-fit mb-4 ${SERVICE_TILE[feature.service]}`}>
                     <feature.icon className="h-5 w-5" />
                   </div>
-                  <h4 className="font-bold text-base text-google-gray-900 mb-2">{feature.name}</h4>
+                  <h4 className="font-bold text-base text-google-teal-dark mb-2">{feature.name}</h4>
                   <p className="text-sm text-google-gray-600 leading-relaxed">{feature.text}</p>
                 </div>
               ))}

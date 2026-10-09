@@ -1,6 +1,6 @@
 """
 Support as a Service (SaaS) Router
-Handles queries, after-sales support, photo-based return triage, and AI assistant chat.
+Handles queries, after-sales support, photo-based return triage.
 """
 
 from fastapi import APIRouter, Body
@@ -10,12 +10,6 @@ from firestore.services.saas import firestore_saas
 from cloud_storage.services.saas import cloud_storage_saas
 
 router = APIRouter(prefix="/api/v1/saas", tags=["Support as a Service (SaaS)"])
-
-@router.post("/chat")
-def chat_with_assistant(data: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-    user_msg = data.get("message", "")
-    context = data.get("context", {})
-    return vertex_saas.chat_assistant(user_msg, context)
 
 @router.post("/returns/triage")
 def triage_return_request(data: Dict[str, Any] = Body(...)) -> Dict[str, Any]:

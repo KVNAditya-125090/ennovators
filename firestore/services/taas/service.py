@@ -11,7 +11,7 @@ SHIPMENTS = [
         "type": "Forward Delivery",
         "origin": "Central Warehouse (Bengaluru)",
         "destination": "Customer (Hyderabad)",
-        "status": "In Transit",
+        "status": "in_transit",
         "carrier": "EcoExpress Zero-Emission Electric",
         "eta": "Tomorrow, 4:00 PM",
         "co2_saved_kg": 1.8
@@ -21,7 +21,7 @@ SHIPMENTS = [
         "type": "Reverse Logistics (Direct Peer Forward)",
         "origin": "Returning Customer (Mumbai)",
         "destination": "New Buyer (Pune)",
-        "status": "Pickup Scheduled",
+        "status": "created",
         "carrier": "Peer2Peer Green Relay",
         "eta": "Oct 9, 2026",
         "co2_saved_kg": 4.5
@@ -31,7 +31,7 @@ SHIPMENTS = [
         "type": "Refurbishment Dispatch",
         "origin": "Collection Hub (Chennai)",
         "destination": "GreenCycle Certified Lab (Bengaluru)",
-        "status": "Delivered",
+        "status": "delivered",
         "carrier": "Partner Logistics",
         "eta": "Delivered Oct 6",
         "co2_saved_kg": 3.2

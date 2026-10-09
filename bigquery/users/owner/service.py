@@ -12,11 +12,8 @@ def get_budget_status() -> Dict[str, Any]:
 def get_gcp_logs() -> List[Dict[str, Any]]:
     return bigquery_maas.get_gcp_logs()
 
-def get_api_health(api_id: str) -> Dict[str, Any]:
-    return bigquery_maas.get_api_health(api_id)
-
-def get_api_usage(tenant_id: str) -> Dict[str, int]:
-    return bigquery_maas.get_api_usage(tenant_id)
+def get_endpoint_usage(tenant_id: str, categories: Dict[str, str]) -> Dict[str, int]:
+    return bigquery_maas.get_endpoint_usage(tenant_id, categories)
 
 def get_workspace_usage(tenant_name: str) -> Dict[str, Any]:
     return bigquery_maas.get_workspace_usage(tenant_name)

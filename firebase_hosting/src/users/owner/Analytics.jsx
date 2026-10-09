@@ -89,17 +89,17 @@ export default function Analytics({ metric }) {
     return (
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div>
-          <h3 className="text-sm font-semibold text-google-gray-900 mb-2">Uptime</h3>
+          <h3 className="text-sm font-semibold text-google-teal-dark mb-2">Uptime</h3>
           <LineChart {...common} {...narrow} series={[{ key: 'uptime_pct', label: 'Uptime', color: '#34A853', area: true }]}
             yMin={99.5} yMaxFixed={100} tickCount={5} formatY={(v) => `${Number(v).toFixed(2)}%`} ariaLabel="Uptime over time" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-google-gray-900 mb-2">Response time (p95)</h3>
+          <h3 className="text-sm font-semibold text-google-teal-dark mb-2">Response time (p95)</h3>
           <LineChart {...common} {...narrow} series={[{ key: 'p95_seconds', label: 'Response time (p95)', color: '#F9AB00' }]}
             formatY={(v, exact) => (exact ? `${v}s` : `${Number(v).toFixed(1)}s`)} target={TARGET_SECONDS} targetLabel={`Target ${TARGET_SECONDS}s`} ariaLabel="Response time over time" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-google-gray-900 mb-2">Error rate</h3>
+          <h3 className="text-sm font-semibold text-google-teal-dark mb-2">Error rate</h3>
           <LineChart {...common} {...narrow} series={[{ key: 'errors_pct', label: 'Error rate', color: '#EA4335' }]}
             yMaxFixed={0.5} tickCount={5} formatY={(v) => `${Number(v).toFixed(2)}%`} ariaLabel="Error rate over time" />
         </div>
@@ -111,11 +111,11 @@ export default function Analytics({ metric }) {
     <div className="google-card p-6">
       <div className="flex flex-wrap justify-between items-center gap-4 mb-5">
         <div className="flex flex-wrap items-center gap-3">
-          <h2 className="font-bold text-lg text-google-gray-900 flex items-center gap-2">
+          <h2 className="font-bold text-lg text-google-teal-dark flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-google-teal" />
             <span>Analytics</span>
             <span className="font-normal text-google-gray-500">·</span>
-            <span className="text-google-blue-dark">{METRIC_LABELS[metric]}</span>
+            <span className="text-google-teal">{METRIC_LABELS[metric]}</span>
           </h2>
           {loading && data && <Loader2 className="h-4 w-4 animate-spin text-google-gray-500" />}
         </div>

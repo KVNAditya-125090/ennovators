@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Gavel, Sparkles, Leaf, RefreshCw, Star, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Gavel, Sparkles, Leaf, RefreshCw, Star } from 'lucide-react';
 import { getStorefront } from './api';
 
 export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
@@ -34,11 +34,11 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
       {/* Unique Feature Callout Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-xl border border-google-gray-200 flex items-center space-x-3">
-          <div className="p-2.5 bg-google-teal-surface text-google-teal rounded-lg">
+          <div className="p-2.5 bg-google-blue-light text-google-teal rounded-lg">
             <Gavel className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="font-semibold text-sm text-google-gray-900">Multi-Seller Bidding Protocol</h4>
+            <h4 className="font-semibold text-sm text-google-teal-dark">Multi-Seller Bidding Protocol</h4>
             <p className="text-xs text-google-gray-600">Sellers compete in real-time to offer you the lowest price</p>
           </div>
         </div>
@@ -48,7 +48,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
             <Leaf className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="font-semibold text-sm text-google-gray-900">Carbon Impact Score</h4>
+            <h4 className="font-semibold text-sm text-google-teal-dark">Carbon Impact Score</h4>
             <p className="text-xs text-google-gray-600">Know exact CO2 savings for new vs refurbished items</p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
             <RefreshCw className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="font-semibold text-sm text-google-gray-900">Future Value Buy-Back</h4>
+            <h4 className="font-semibold text-sm text-google-teal-dark">Future Value Buy-Back</h4>
             <p className="text-xs text-google-gray-600">Guaranteed buy-back value for trade-in anytime</p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
 
       {/* Product Catalog Grid */}
       <div>
-        <h2 className="text-xl font-bold text-google-gray-900 mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-google-teal-dark mb-4 flex items-center gap-2">
           <ShoppingBag className="h-5 w-5 text-google-teal" />
           <span>Available Products & Live Auctions</span>
         </h2>
@@ -84,7 +84,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
 
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-google-gray-900 text-base">{product.name}</h3>
+                    <h3 className="font-bold text-google-teal-dark text-base">{product.name}</h3>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-google-gray-600 mb-3">
@@ -111,7 +111,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant }) {
               <div className="p-5 pt-0 space-y-2">
                 <button
                   onClick={() => onOpenBidding(product)}
-                  className="w-full google-btn-primary bg-google-teal"
+                  className="w-full google-btn-primary bg-google-blue-dark"
                 >
                   <Gavel className="h-4 w-4" />
                   <span>Start Live Multi-Seller Bid</span>

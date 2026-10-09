@@ -15,14 +15,9 @@ TICKETS = [
 # Tickets that consumers raise with the platform team (not their own customers' tickets).
 # status: Open, In progress or Resolved. Hours are None until that step has happened.
 PLATFORM_TICKETS = [
-    {"ticket_id": "PT-201", "tenant_id": "t-002", "consumer": "GreenCycle Refurbishers", "subject": "Photo grading results look inconsistent", "priority": "High", "status": "Open", "opened": "2026-10-06", "first_response_hours": 1.5, "resolution_hours": None},
-    {"ticket_id": "PT-202", "tenant_id": "t-001", "consumer": "Aura Eco Retail", "subject": "Request to raise the AI request quota", "priority": "Normal", "status": "In progress", "opened": "2026-10-05", "first_response_hours": 2.0, "resolution_hours": None},
-    {"ticket_id": "PT-203", "tenant_id": "t-003", "consumer": "NextLife Electronics", "subject": "Bidding room closes too early", "priority": "High", "status": "Open", "opened": "2026-10-07", "first_response_hours": None, "resolution_hours": None},
-    {"ticket_id": "PT-204", "tenant_id": "t-002", "consumer": "GreenCycle Refurbishers", "subject": "Invoice shows the wrong API fee", "priority": "Low", "status": "Resolved", "opened": "2026-10-02", "first_response_hours": 4.0, "resolution_hours": 26.0},
-    {"ticket_id": "PT-205", "tenant_id": "t-001", "consumer": "Aura Eco Retail", "subject": "Shipment update notifications failing", "priority": "High", "status": "Resolved", "opened": "2026-09-30", "first_response_hours": 0.8, "resolution_hours": 9.5},
-    {"ticket_id": "PT-206", "tenant_id": "t-003", "consumer": "NextLife Electronics", "subject": "Add a new team member role", "priority": "Low", "status": "Resolved", "opened": "2026-09-28", "first_response_hours": 3.5, "resolution_hours": 20.0},
-    {"ticket_id": "PT-207", "tenant_id": "t-001", "consumer": "Aura Eco Retail", "subject": "Export sales analytics to a file", "priority": "Normal", "status": "Resolved", "opened": "2026-09-25", "first_response_hours": 2.2, "resolution_hours": 30.0},
-    {"ticket_id": "PT-208", "tenant_id": "t-002", "consumer": "GreenCycle Refurbishers", "subject": "Question about reorder point settings", "priority": "Normal", "status": "Open", "opened": "2026-10-07", "first_response_hours": None, "resolution_hours": None},
+    {"ticket_id": "PT-201", "tenant_id": "t-001", "consumer": "GreenCycle Refurbishers", "subject": "Photo grading results look inconsistent", "priority": "High", "status": "Open", "opened": "2026-10-06", "first_response_hours": 1.5, "resolution_hours": None},
+    {"ticket_id": "PT-204", "tenant_id": "t-001", "consumer": "GreenCycle Refurbishers", "subject": "Invoice shows the wrong API fee", "priority": "Low", "status": "Resolved", "opened": "2026-10-02", "first_response_hours": 4.0, "resolution_hours": 26.0},
+    {"ticket_id": "PT-208", "tenant_id": "t-001", "consumer": "GreenCycle Refurbishers", "subject": "Question about reorder point settings", "priority": "Normal", "status": "Open", "opened": "2026-10-07", "first_response_hours": None, "resolution_hours": None},
 ]
 
 # Queries: general questions anyone can send from the home page (name, email, mobile number and the question).

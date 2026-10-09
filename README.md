@@ -91,8 +91,7 @@ firestore/
   | `users/consumer/` | `ConsumerView` |
   | `users/customer/` | `CustomerView`, `LandingPage` |
   | `services/maas/` | `SignInModal` (role access) |
-  | `services/paas/` | `BiddingModal` |
-  | `services/saas/` | `AiAssistantDrawer` |
+  | `services/paas/` | `BiddingModal`, `AiAssistantDrawer` |
   | `src/` | `App`, `Navbar` (app shell, shared by all) |
 
 - `looker_studio/` uses a `README.md` per folder in place of code.

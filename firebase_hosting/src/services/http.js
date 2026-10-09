@@ -1,6 +1,11 @@
+import { loadSession } from './maas/session';
+
 // Shared fetch helper. Paths are relative: Firebase Hosting rewrites /api/** to Cloud Run.
-export async function request(path, options) {
-  const res = await fetch(path, options);
+// Every call says who is signed in, so the API can check the caller (preview: no token yet).
+export async function request(path, options = {}) {
+  const email = loadSession()?.email;
+  const headers = { ...(options.headers || {}), ...(email ? { 'X-User-Email': encodeURIComponent(email) } : {}) };
+  const res = await fetch(path, { ...options, headers });
   if (!res.ok) {
     const error = new Error(`${path} failed with ${res.status}`);
     error.status = res.status;

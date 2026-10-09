@@ -45,9 +45,9 @@ export default function QueryForm() {
     return (
       <div className="google-card w-full p-8 text-center" role="status">
         <CheckCircle className="h-10 w-10 text-google-green mx-auto" />
-        <h3 className="mt-3 text-xl font-bold text-google-gray-900">Thank you, we have your query</h3>
+        <h3 className="mt-3 text-xl font-bold text-google-teal-dark">Thank you, we have your query</h3>
         <p className="mt-2 text-sm text-google-gray-600">Reference <span className="font-semibold text-google-gray-900">{sent.id}</span>. We will reply to {sent.email}, or give you a call.</p>
-        <button onClick={() => setSent(null)} className="mt-5 text-sm font-semibold text-google-blue-dark hover:underline">Ask another query</button>
+        <button onClick={() => setSent(null)} className="mt-5 text-sm font-semibold text-google-teal hover:underline">Ask another query</button>
       </div>
     );
   }

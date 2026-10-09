@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from cloud_run.services import maas, paas, taas, saas
 from cloud_run.users import owner, consumer, customer
+from cloud_run import gate
 
 app = FastAPI(
     title="AuraCommerce 360 API Gateway",
@@ -28,6 +29,9 @@ app.include_router(maas.router)
 app.include_router(paas.router)
 app.include_router(taas.router)
 app.include_router(saas.router)
+
+# The gate: every catalog endpoint, checked on each call
+app.include_router(gate.router)
 
 # Register User Routers (Owner, Consumer, Customer)
 app.include_router(owner.router)

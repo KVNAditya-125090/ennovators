@@ -4,9 +4,14 @@ import { login } from './index';
 
 // Preview accounts: signing in with one opens the portal for its role
 const DEMO_ACCOUNTS = [
-  { role: 'Owner', email: 'admin@auracommerce.io', password: 'Owner@123' },
-  { role: 'Consumer', email: 'seller@greencycle.com', password: 'Seller@123' },
-  { role: 'Customer', email: 'customer@gmail.com', password: 'Customer@123' }
+  { role: 'Owner · Manager', email: 'admin@auracommerce.io', password: 'Owner@123' },
+  { role: 'Owner · Developer', email: 'developer@auracommerce.io', password: 'Developer@123' },
+  { role: 'Owner · Operator', email: 'operator@auracommerce.io', password: 'Operator@123' },
+  { role: 'Consumer · Root', email: 'seller@greencycle.com', password: 'Seller@123' },
+  { role: 'Consumer · Manager', email: 'rahul@greencycle.com', password: 'Manager@123' },
+  { role: 'Consumer · Seller', email: 'anika@greencycle.com', password: 'Seller@123' },
+  { role: 'Consumer · Dispatcher', email: 'priya@greencycle.com', password: 'Dispatcher@123' },
+  { role: 'Customer · Individual', email: 'customer@gmail.com', password: 'Customer@123' }
 ];
 
 export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
@@ -15,6 +20,7 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgot, setForgot] = useState(false);
 
   if (!isOpen) return null;
 
@@ -49,8 +55,8 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
               <Sparkles className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-google-gray-900">Sign In</h3>
-              <p className="text-xs text-google-gray-600">One sign-in for every portal</p>
+              <h3 className="font-semibold text-lg text-google-teal-dark">Sign in</h3>
+              <p className="text-xs text-google-gray-500">to your AuraCommerce 360 workspace</p>
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 text-google-gray-400 hover:text-google-gray-700 rounded-full hover:bg-google-gray-100">
@@ -78,7 +84,10 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
           </div>
 
           <div>
-            <label htmlFor="signin-password" className="block text-xs font-bold text-google-gray-700 uppercase tracking-wider mb-2">Password</label>
+            <div className="mb-2 flex items-center justify-between">
+              <label htmlFor="signin-password" className="block text-xs font-bold text-google-gray-700 uppercase tracking-wider">Password</label>
+              <button type="button" onClick={() => setForgot((v) => !v)} className="text-xs font-medium text-google-teal hover:underline">Forgot password?</button>
+            </div>
             <div className="relative">
               <Lock className="h-4 w-4 text-google-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -102,6 +111,12 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
             </div>
           </div>
 
+          {forgot && (
+            <div className="rounded-lg bg-google-blue-light px-3 py-2 text-sm text-google-gray-800">
+              Ask your workspace administrator to reset it. Owners: ask your manager. Team members: ask your company's root account.
+            </div>
+          )}
+
           {error && (
             <div role="alert" className="flex items-center gap-2 rounded-lg bg-google-red-light text-google-red px-3 py-2 text-sm">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -114,23 +129,23 @@ export default function SignInModal({ isOpen, onClose, onSignInSuccess }) {
             <span>{loading ? 'Signing in...' : 'Sign in'}</span>
           </button>
 
-          {/* Preview accounts */}
-          <div className="pt-4 border-t border-google-gray-200">
-            <div className="text-xs font-bold text-google-gray-700 uppercase tracking-wider mb-2">Preview accounts (click to fill)</div>
-            <div className="space-y-2">
+          {/* Demo accounts, out of the way until asked for */}
+          <details className="group pt-3 border-t border-google-gray-100">
+            <summary className="cursor-pointer list-none text-center text-xs text-google-gray-500 hover:text-google-teal">Try a demo account</summary>
+            <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto pr-1">
               {DEMO_ACCOUNTS.map((account) => (
                 <button
                   key={account.role}
                   type="button"
                   onClick={() => fillDemo(account)}
-                  className="w-full flex items-center justify-between rounded-lg border border-google-gray-200 px-3 py-2 text-left hover:bg-google-gray-100 transition-colors"
+                  className="w-full flex items-center justify-between gap-3 rounded-lg px-3 py-1.5 text-left hover:bg-google-gray-100 transition-colors"
                 >
-                  <span className="text-sm font-semibold text-google-gray-900">{account.role}</span>
-                  <span className="text-xs text-google-gray-600">{account.email}</span>
+                  <span className="text-xs font-medium text-google-gray-700">{account.role}</span>
+                  <span className="truncate text-xs text-google-gray-500">{account.email}</span>
                 </button>
               ))}
             </div>
-          </div>
+          </details>
         </form>
       </div>
     </div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { openBiddingRoom } from './index';
-import { X, Gavel, CheckCircle, Clock, ShieldAlert, Sparkles, Trophy } from 'lucide-react';
+import { X, Gavel, CheckCircle, Sparkles, Trophy } from 'lucide-react';
 
 export default function BiddingModal({ product, onClose }) {
   const [budget, setBudget] = useState(product?.current_bidding_floor || 180.00);
@@ -31,11 +31,11 @@ export default function BiddingModal({ product, onClose }) {
         {/* Header */}
         <div className="flex justify-between items-start pb-4 border-b border-google-gray-200">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-google-teal-surface text-google-teal rounded-xl">
+            <div className="p-2 bg-google-blue-light text-google-teal rounded-xl">
               <Gavel className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-google-gray-900">Customer-to-Multi-Seller Bidding</h3>
+              <h3 className="font-bold text-lg text-google-teal-dark">Customer-to-Multi-Seller Bidding</h3>
               <p className="text-xs text-google-gray-600">Protocol 7.2.1 • Bounded Real-time Auction</p>
             </div>
           </div>
@@ -49,7 +49,7 @@ export default function BiddingModal({ product, onClose }) {
           <div className="flex items-center space-x-4 bg-google-gray-50 p-3 rounded-xl border border-google-gray-200">
             <img src={product.image_url} alt={product.name} className="w-16 h-16 rounded-lg object-cover" />
             <div>
-              <h4 className="font-bold text-google-gray-900 text-sm">{product.name}</h4>
+              <h4 className="font-bold text-google-teal-dark text-sm">{product.name}</h4>
               <p className="text-xs text-google-gray-600">List Price: ${product.retail_price} • Floor: ${product.current_bidding_floor}</p>
             </div>
           </div>
@@ -64,11 +64,11 @@ export default function BiddingModal({ product, onClose }) {
                   type="number"
                   value={budget}
                   onChange={(e) => setBudget(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-google-gray-300 focus:ring-2 focus:ring-google-teal focus:border-google-teal outline-none font-semibold text-lg text-google-teal"
+                  className="w-full px-4 py-2.5 rounded-xl border border-google-gray-300 focus:ring-2 focus:ring-google-blue-dark focus:border-google-blue-dark outline-none font-semibold text-lg text-google-teal"
                 />
               </div>
 
-              <div className="p-3 bg-google-teal-surface/50 rounded-xl text-xs text-google-teal-dark border border-google-teal-light/40 flex items-start space-x-2">
+              <div className="p-3 bg-google-blue-light/50 rounded-xl text-xs text-google-teal-dark border border-google-blue/40 flex items-start space-x-2">
                 <Sparkles className="h-4 w-4 text-google-teal shrink-0 mt-0.5" />
                 <span>
                   The Bidding Engine will open a live bidding room and invite eligible sellers (Retailer, Refurbishers & Outlets) to submit counter-offers.
@@ -77,7 +77,7 @@ export default function BiddingModal({ product, onClose }) {
 
               <button
                 onClick={startBidding}
-                className="w-full google-btn-primary py-3 text-sm bg-google-teal"
+                className="w-full google-btn-primary py-3 text-sm bg-google-blue-dark"
               >
                 <Gavel className="h-4 w-4" />
                 <span>Open Bidding Room Now</span>
@@ -87,13 +87,13 @@ export default function BiddingModal({ product, onClose }) {
 
           {auctionState === 'RUNNING' && (
             <div className="py-8 text-center space-y-4">
-              <div className="inline-block p-4 bg-google-teal-surface rounded-full">
+              <div className="inline-block p-4 bg-google-blue-light rounded-full">
                 <Gavel className="h-8 w-8 text-google-teal" />
               </div>
-              <h4 className="font-bold text-google-gray-900">Broadcasting Auction Window...</h4>
+              <h4 className="font-bold text-google-teal-dark">Broadcasting Auction Window...</h4>
               <p className="text-xs text-google-gray-600">Collecting live bids from 3 matched sellers within floor & ceiling guardrails...</p>
               <div className="w-48 mx-auto bg-google-gray-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-google-teal h-full animate-pulse rounded-full w-3/4"></div>
+                <div className="bg-google-blue-dark h-full animate-pulse rounded-full w-3/4"></div>
               </div>
             </div>
           )}
@@ -132,7 +132,7 @@ export default function BiddingModal({ product, onClose }) {
 
               <button
                 onClick={onClose}
-                className="w-full google-btn-primary py-2.5 text-sm bg-google-teal"
+                className="w-full google-btn-primary py-2.5 text-sm bg-google-blue-dark"
               >
                 <CheckCircle className="h-4 w-4" />
                 <span>Accept Winning Offer & Checkout</span>

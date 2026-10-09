@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { chat, triageReturn } from './index';
-import { X, Sparkles, Send, Camera, CheckCircle, RefreshCw, MessageSquare } from 'lucide-react';
+import { chat } from './index';
+import { triageReturn } from '../saas';
+import { X, Sparkles, Send, Camera, CheckCircle } from 'lucide-react';
 
 export default function AiAssistantDrawer({ isOpen, onClose }) {
   const [messages, setMessages] = useState([
@@ -52,7 +53,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end animate-fade-in">
       <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between border-l border-google-gray-200">
         {/* Drawer Header */}
-        <div className="p-4 bg-google-teal text-white flex justify-between items-center ">
+        <div className="p-4 google-hero text-white flex justify-between items-center ">
           <div className="flex items-center space-x-2">
             <Sparkles className="h-5 w-5" />
             <div>
@@ -71,7 +72,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
             <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
                 msg.sender === 'user'
-                  ? 'bg-google-teal text-white rounded-tr-none'
+                  ? 'bg-google-blue-dark text-white rounded-tr-none'
                   : 'bg-white text-google-gray-800 border border-google-gray-200  rounded-tl-none'
               }`}>
                 {msg.text}
@@ -82,7 +83,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
                       <button
                         key={i}
                         onClick={() => act.includes('Photo') ? simulatePhotoTriage() : setInputText(act)}
-                        className="px-2 py-1 bg-google-teal-surface text-google-teal rounded-md text-[10px] font-semibold hover:bg-google-teal hover:text-white transition-all"
+                        className="px-2 py-1 bg-google-blue-light text-google-teal rounded-md text-[10px] font-semibold hover:bg-google-blue-dark hover:text-white transition-all"
                       >
                         {act}
                       </button>
@@ -120,7 +121,7 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
             <button
               onClick={simulatePhotoTriage}
               title="Upload Photo for AI Condition Triage"
-              className="p-2.5 bg-google-gray-100 text-google-teal rounded-xl hover:bg-google-teal-surface transition-all"
+              className="p-2.5 bg-google-gray-100 text-google-teal rounded-xl hover:bg-google-blue-light transition-all"
             >
               <Camera className="h-4 w-4" />
             </button>
@@ -130,11 +131,11 @@ export default function AiAssistantDrawer({ isOpen, onClose }) {
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask about products, bids, or returns..."
-              className="flex-1 px-3 py-2 border border-google-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-google-teal"
+              className="flex-1 px-3 py-2 border border-google-gray-300 rounded-xl text-xs outline-none focus:ring-2 focus:ring-google-blue-dark"
             />
             <button
               onClick={handleSend}
-              className="p-2.5 bg-google-teal text-white rounded-xl hover:bg-google-teal-dark transition-all"
+              className="p-2.5 bg-google-blue-dark text-white rounded-xl hover:bg-google-blue-deep transition-all"
             >
               <Send className="h-4 w-4" />
             </button>

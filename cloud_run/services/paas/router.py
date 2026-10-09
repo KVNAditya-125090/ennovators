@@ -3,7 +3,7 @@ Product as a Service (PaaS) Router
 Handles product catalog, Customer-to-Multi-Seller Bidding Protocol, surplus auctions, and forecasting.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from typing import Dict, Any, List
 from firestore.services.paas import firestore_paas
 from bigquery.services.paas import bigquery_paas
@@ -11,6 +11,10 @@ from vertex_ai.services.paas import vertex_paas
 import random
 
 router = APIRouter(prefix="/api/v1/paas", tags=["Product as a Service (PaaS)"])
+
+@router.post("/assistant/chat/text-to-text")
+def chat_with_assistant(data: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    return vertex_paas.chat_assistant(data.get("message", ""), data.get("context", {}))
 
 @router.get("/products")
 def get_products() -> List[Dict[str, Any]]:
