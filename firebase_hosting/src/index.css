@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-size: 15px; /* a working density, like other admin consoles */
+  }
+  body {
+    @apply bg-google-gray-50 text-google-gray-900 font-sans;
+    overflow: hidden;
+  }
+  button:not(:disabled), a { -webkit-tap-highlight-color: transparent; }
+  button:not(:disabled):active { transform: scale(0.98); }
+  :focus-visible { outline: 2px solid #4285F4; outline-offset: 2px; border-radius: 6px; }
+}
+
+/* Hide scrollbars everywhere (scrolling still works) */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Fit every screen: the page is never wider than the device, so there is no sideways scrolling.
+   Grid and flex children may shrink below their content (the browser default stops them), long words wrap,
+   and media and form fields never grow past their container. Wide tables scroll inside their own card. */
+html, body, #root {
+  max-width: 100%;
+  overflow-x: clip;
+}
+.grid > *,
+.flex > .flex-1,
+.google-card {
+  min-width: 0;
+}
+.google-card {
+  max-width: 100%;
+}
+img, svg, video, canvas, iframe,
+input, select, textarea {
+  max-width: 100%;
+}
+h1, h2, h3, h4, p, dd, li {
+  overflow-wrap: anywhere;
+}
+
+/* Header and footer stay put; the page body scrolls between them */
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.google-card {
+  @apply bg-white/95 rounded-2xl border border-google-gray-200/80 shadow-sm;
+  transition: box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+  animation: fade-up .45s cubic-bezier(.2,.7,.2,1) both;
+}
+.google-card:hover {
+  box-shadow: 0 10px 28px -12px rgba(26, 115, 232, .28), 0 2px 6px rgba(60, 64, 67, .06);
+  border-color: rgba(66, 133, 244, .35);
+}
+/* Cards that are themselves a control lift a little on hover */
+.lift { transition: transform .25s ease, box-shadow .25s ease; }
+.lift:hover { transform: translateY(-3px); box-shadow: 0 16px 36px -14px rgba(26, 115, 232, .35); }
+
+/* The app background: a soft wash of the four Google colours behind everything */
+.app-bg {
+  background-color: #F8F9FA;
+  background-image:
+    radial-gradient(900px 480px at 8% -8%, rgba(66, 133, 244, .14), transparent 60%),
+    radial-gradient(760px 420px at 96% 4%, rgba(52, 168, 83, .12), transparent 60%),
+    radial-gradient(700px 400px at 70% 100%, rgba(251, 188, 4, .10), transparent 60%),
+    radial-gradient(640px 380px at 0% 90%, rgba(234, 67, 53, .07), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* A page's title banner: Google-colour tints with teal text on top */
+.hero-strip {
+  background-image: linear-gradient(120deg, rgba(232, 240, 254, .95) 0%, rgba(230, 244, 234, .9) 55%, rgba(254, 247, 224, .9) 100%);
+  border: 1px solid rgba(66, 133, 244, .15);
+  animation: fade-up .45s cubic-bezier(.2,.7,.2,1) both;
+}
+
+/* Section titles get a small gradient marker */
+.section-title { display: flex; align-items: center; gap: .55rem; }
+.section-title::before { content: ""; width: 4px; height: 1.1em; border-radius: 4px; background-image: linear-gradient(180deg, #4285F4, #34A853); flex: none; }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.96) translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes slide-left { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes float-slow { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -22px, 0); } }
+@keyframes drift { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(30px, 18px, 0) scale(1.08); } }
+@keyframes gradient-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.animate-pop { animation: pop-in .22s ease-out both; }
+.animate-slide-left { animation: slide-left .28s cubic-bezier(.2,.7,.2,1) both; }
+.animate-fade { animation: fade-in .2s ease-out both; }
+.animate-float { animation: float-slow 9s ease-in-out infinite; }
+.animate-drift { animation: drift 14s ease-in-out infinite; }
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1); }
+.reveal.in { opacity: 1; transform: none; }
+.gradient-pan { background-size: 220% 220%; animation: gradient-pan 16s ease infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+
+.google-btn-primary {
+  @apply bg-google-blue-dark text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-150 flex items-center justify-center gap-2;
+  background-image: linear-gradient(90deg, #4285F4, #34A853);
+}
+
+.google-btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 8px 20px -8px rgba(66, 133, 244, .6);
+}
+
+.google-btn-secondary {
+  @apply bg-white text-google-teal border border-google-teal font-medium px-5 py-2.5 rounded-lg hover:bg-google-blue-light transition-colors duration-150 flex items-center justify-center gap-2;
+}
+
+.google-pill {
+  @apply px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5;
+}
+
+/* Google colour gradients: blue, red, yellow, green */
+.google-gradient {
+  background-image: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+}
+
+.google-gradient-diag {
+  background-image: linear-gradient(135deg, #4285F4 0%, #EA4335 35%, #FBBC04 65%, #34A853 100%);
+}
+
+.google-hero {
+  background-image: linear-gradient(120deg, #174EA6 0%, #1A73E8 40%, #1E8E3E 100%);
+}
+
+.google-gradient-text-light {
+  background-image: linear-gradient(90deg, #8AB4F8, #F28B82, #FDD663, #81C995);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.google-gradient-text {
+  background-image: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Theme: Google colours (solid or gradient) for backgrounds, standard teal for highlighted text.
+   The main action of a page gets the Google blue-to-green gradient. */
+.google-btn-gradient {
+  background-image: linear-gradient(90deg, #4285F4, #34A853);
+}
+.google-btn-gradient { transition: filter .2s ease, box-shadow .2s ease, transform .1s ease; }
+.google-btn-gradient:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 8px 18px -8px rgba(66, 133, 244, .65);
+}
+
+
+/* A highlighted phrase on a dark gradient banner: white text over a Google-colour underline.
+   (Gradient-filled text is hard to read on the coloured banner.) Works across line breaks. */
+.google-underline {
+  color: #fff;
+  background-image: linear-gradient(90deg, #4285F4, #EA4335, #FBBC04, #34A853);
+  background-repeat: no-repeat;
+  background-size: 100% 0.14em;
+  background-position: 0 100%;
+  padding-bottom: 0.06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

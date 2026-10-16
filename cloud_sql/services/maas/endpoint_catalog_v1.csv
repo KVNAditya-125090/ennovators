@@ -1,0 +1,417 @@
+path,service,feature,sub_category,version,actor,description,ai,list_item,depends_on
+/maas/root-account/provision/v1,maas,root-account,provision,v1,Owner manager,Root account is provisioned when a Consumer is onboarded,No,1,-
+/maas/root-account/read/v1,maas,root-account,read,v1,Consumer root,View company account details,No,1,-
+/maas/root-account/settings/read/v1,maas,root-account,settings/read,v1,Consumer root,View overall settings,No,1,-
+/maas/root-account/settings/update/v1,maas,root-account,settings/update,v1,Consumer root,Change overall settings (root only),No,1,-
+/maas/role/create/v1,maas,role,create,v1,Consumer root,Create an internal company role,No,2,-
+/maas/role/read/v1,maas,role,read,v1,Consumer root,View internal roles,No,2,-
+/maas/role/update/v1,maas,role,update,v1,Consumer root,Edit an internal role,No,2,-
+/maas/role/deactivate/v1,maas,role,deactivate,v1,Consumer root,Deactivate an internal role,No,2,-
+/maas/role/permission/read/v1,maas,role,permission/read,v1,Consumer root,View which endpoints a role may trigger,No,4,-
+/maas/role/permission/assign/v1,maas,role,permission/assign,v1,Consumer root,Grant a role access to a specific endpoint (least privilege),No,4,-
+/maas/role/permission/revoke/v1,maas,role,permission/revoke,v1,Consumer root,Remove a role's access to an endpoint,No,4,-
+/maas/notification/root-mail/send/v1,maas,notification,root-mail/send,v1,System,Send the root a mail for any internal role event,No,3,-
+/maas/notification/root-mail/log/read/v1,maas,notification,root-mail/log/read,v1,Consumer root,View the log of mails sent to the root,No,3,-
+/maas/user/staff/list/v1,maas,user,staff/list,v1,Consumer root,List internal company users,No,5,-
+/maas/user/customer/list/v1,maas,user,customer/list,v1,Consumer root,List registered Customers,No,5,-
+/maas/user/customer/read/v1,maas,user,customer/read,v1,Consumer staff,View one Customer's account,No,5,-
+/maas/customer-account/register/individual/v1,maas,customer-account,register/individual,v1,Customer,Register an Individual account,No,6,-
+/maas/customer-account/register/business/v1,maas,customer-account,register/business,v1,Customer,Register a Business account,No,6,-
+/maas/customer-account/login/v1,maas,customer-account,login,v1,Customer,Sign in (single sign-on across the Consumer's enabled services),No,6,-
+/maas/customer-account/profile/read/v1,maas,customer-account,profile/read,v1,Customer,View own profile,No,6,-
+/maas/customer-account/profile/update/v1,maas,customer-account,profile/update,v1,Customer,Update own profile,No,6,-
+/maas/customer-account/deactivate/v1,maas,customer-account,deactivate,v1,Customer,Deactivate own account,No,6,-
+/maas/assistant/account-help/ask/v1,maas,assistant,account-help/ask,v1,Customer,Ask the assistant about account and login questions,Yes,76,-
+/maas/database/record/read/v1,maas,database,record/read,v1,Consumer staff,Read a tenant-scoped record,No,7,-
+/maas/database/record/write/v1,maas,database,record/write,v1,Consumer staff,Write a tenant-scoped record,No,7,-
+/maas/database/export/v1,maas,database,export,v1,Consumer root,Export tenant data,No,7,-
+/maas/endpoint/purchased/list/v1,maas,endpoint,purchased/list,v1,Consumer root,List the endpoints the Consumer has bought from the Owner,No,8,-
+/maas/endpoint/customer/enable/v1,maas,endpoint,customer/enable,v1,Consumer root,Enable a purchased endpoint for Customers,No,8,-
+/maas/endpoint/customer/disable/v1,maas,endpoint,customer/disable,v1,Consumer root,Disable an endpoint for Customers,No,8,-
+/maas/interface/template/create/v1,maas,interface,template/create,v1,Consumer root,Create the Customer-platform template,No,9,-
+/maas/interface/template/read/v1,maas,interface,template/read,v1,Consumer root,View the template,No,9,-
+/maas/interface/template/update/v1,maas,interface,template/update,v1,Consumer root,"Edit layout, branding and sections",No,9,-
+/maas/interface/template/role-view/update/v1,maas,interface,template/role-view/update,v1,Consumer root,Set how company roles see their own views,No,9,-
+/maas/interface/template/preview/v1,maas,interface,template/preview,v1,Consumer root,Preview before publishing,No,9,-
+/maas/interface/template/publish/v1,maas,interface,template/publish,v1,Consumer root,Publish the template to Customers,No,9,-
+/maas/partner/link/list/v1,maas,partner,link/list,v1,Consumer root,List partner links,No,10,-
+/maas/partner/link/approve/v1,maas,partner,link/approve,v1,Owner operator,Record a brokered partner link after settlement,No,10,-
+/maas/partner/link/enable/v1,maas,partner,link/enable,v1,Consumer root,Enable a settled partner link on the Consumer side,No,10,-
+/maas/partner/link/disable/v1,maas,partner,link/disable,v1,Consumer root,Disable a partner link,No,10,-
+/maas/partner/link/customer-access/enable/v1,maas,partner,link/customer-access/enable,v1,Consumer root,Open a partner's endpoints to own Customers,No,10,-
+/maas/partner/link/customer-access/disable/v1,maas,partner,link/customer-access/disable,v1,Consumer root,Close a partner's endpoints to own Customers,No,10,-
+/maas/partner/commission/policy/set/v1,maas,partner,commission/policy/set,v1,Owner manager,Set commission or fixed rate for partner links,No,-,-
+/maas/partner/commission/usage/read/v1,maas,partner,commission/usage/read,v1,Owner operator,View partner-link usage for commission,No,-,-
+/maas/owner-ticket/create/general/v1,maas,owner-ticket,create/general,v1,Consumer staff,"Raise a ticket with the Owner (platform issue, plan or endpoint question)",No,77,-
+/maas/owner-ticket/create/partner-link/v1,maas,owner-ticket,create/partner-link,v1,Consumer root,Request a partner link,No,77,-
+/maas/owner-ticket/read/v1,maas,owner-ticket,read,v1,Consumer staff,View own Owner tickets,No,77,-
+/maas/owner-ticket/reply/consumer/v1,maas,owner-ticket,reply/consumer,v1,Consumer staff,Reply to the Owner in a ticket,No,77,-
+/maas/owner-ticket/reply/owner/v1,maas,owner-ticket,reply/owner,v1,Owner operator,Owner operator replies to a Consumer ticket,No,77,-
+/maas/owner-ticket/price-settlement/record/v1,maas,owner-ticket,price-settlement/record,v1,Owner operator,Record the agreed price or commission for a partner link,No,77,-
+/maas/owner-ticket/close/v1,maas,owner-ticket,close,v1,Owner operator,Close a Consumer-to-Owner ticket,No,77,-
+/maas/consumer/onboard/v1,maas,consumer,onboard,v1,Owner manager,Onboard a new Consumer,No,-,-
+/maas/consumer/entitlement/grant/v1,maas,consumer,entitlement/grant,v1,Owner manager,Grant a Consumer the endpoints it bought,No,8,-
+/maas/consumer/entitlement/revoke/v1,maas,consumer,entitlement/revoke,v1,Owner manager,Revoke a Consumer's endpoints,No,8,-
+/maas/analytics/dashboard/read/v1,maas,analytics,dashboard/read,v1,Consumer root,View summary dashboard across opted-in services,No,11,-
+/maas/analytics/usage/read/v1,maas,analytics,usage/read,v1,Consumer root,View endpoint usage,No,12,-
+/maas/billing/usage/read/v1,maas,billing,usage/read,v1,Consumer root,View charges per endpoint and per usage,No,12,-
+/maas/billing/invoice/read/v1,maas,billing,invoice/read,v1,Consumer root,View invoices,No,12,-
+/maas/fraud/account/detect/v1,maas,fraud,account/detect,v1,System,Flag suspicious sign-ups and account activity,Yes,57,-
+/maas/fraud/account/flag/read/v1,maas,fraud,account/flag/read,v1,Consumer staff,View flagged accounts,No,57,-
+/maas/fraud/threshold/update/v1,maas,fraud,threshold/update,v1,Consumer root,Set fraud thresholds,No,57,-
+/maas/fraud/review-queue/read/v1,maas,fraud,review-queue/read,v1,Consumer staff,View the human review queue,No,60,-
+/maas/fraud/review-queue/decide/v1,maas,fraud,review-queue/decide,v1,Consumer staff,Decide a flagged case,No,60,-
+/maas/locale/language/set/v1,maas,locale,language/set,v1,Consumer root,Set supported languages for the Consumer,No,71,-
+/maas/locale/region/set/v1,maas,locale,region/set,v1,Consumer root,Set local or global operation and regions,No,71,-
+/maas/locale/currency/set/v1,maas,locale,currency/set,v1,Consumer root,Set currencies,No,71,-
+/maas/locale/language/customer-select/v1,maas,locale,language/customer-select,v1,Customer,Choose own display language,No,71,-
+/maas/interaction/mode/settings/update/v1,maas,interaction,mode/settings/update,v1,Consumer root,"Enable text-to-text, text-to-speech, speech-to-text, speech-to-speech",No,72,-
+/maas/location/store/create/v1,maas,location,store/create,v1,Consumer root,Add a store location,No,68,-
+/maas/location/store/read/v1,maas,location,store/read,v1,Consumer staff,View store locations,No,68,-
+/maas/location/store/update/v1,maas,location,store/update,v1,Consumer root,Edit a store location,No,68,-
+/maas/location/store/deactivate/v1,maas,location,store/deactivate,v1,Consumer root,Deactivate a store location,No,68,-
+/maas/location/store/list/v1,maas,location,store/list,v1,Customer,See store locations,No,68,-
+/maas/impact/ledger/read/v1,maas,impact,ledger/read,v1,Consumer root,View the impact ledger across services,No,79,-
+/maas/impact/baseline/read/v1,maas,impact,baseline/read,v1,Consumer root,View recorded baselines,No,78,-
+/maas/impact/report/net/generate/v1,maas,impact,report/net/generate,v1,System,Generate net impact against baseline,Yes,80,-
+/maas/impact/report/net/read/v1,maas,impact,report/net/read,v1,Consumer root,View the net impact report,No,80,-
+/maas/impact/ai-footprint/read/v1,maas,impact,ai-footprint/read,v1,Consumer root,View the energy cost of the AI used,No,81,-
+/maas/impact/source-confidence/read/v1,maas,impact,source-confidence/read,v1,Consumer root,View data source and confidence for each figure,No,82,-
+/maas/impact/report/export/v1,maas,impact,report/export,v1,Consumer root,Export impact report for ESG reporting,No,83,-
+/maas/customer-account/mail/verify/v1,maas,customer-account,mail/verify,v1,Customer,Verify the mail id used to register,No,-,-
+/maas/customer-account/logout/v1,maas,customer-account,logout,v1,Customer,Sign out,No,-,-
+/maas/customer-account/session/refresh/v1,maas,customer-account,session/refresh,v1,Customer,Keep the sign-in session alive,No,-,-
+/maas/customer-account/password/reset/request/v1,maas,customer-account,password/reset/request,v1,Customer,Request a password reset by mail,No,-,-
+/maas/customer-account/password/reset/confirm/v1,maas,customer-account,password/reset/confirm,v1,Customer,Set a new password from the reset mail,No,-,-
+/maas/customer-account/password/change/v1,maas,customer-account,password/change,v1,Customer,Change own password,No,-,-
+/maas/customer-account/data/export/v1,maas,customer-account,data/export,v1,Customer,Export own data,No,-,-
+/maas/customer-account/data/delete/v1,maas,customer-account,data/delete,v1,Customer,Request deletion of own data,No,-,-
+/maas/root-account/login/v1,maas,root-account,login,v1,Consumer root,Root signs in,No,-,-
+/maas/root-account/logout/v1,maas,root-account,logout,v1,Consumer root,Root signs out,No,-,-
+/maas/root-account/session/refresh/v1,maas,root-account,session/refresh,v1,Consumer root,Keep the root session alive,No,-,-
+/maas/root-account/password/reset/request/v1,maas,root-account,password/reset/request,v1,Consumer root,Request a root password reset by mail,No,-,-
+/maas/root-account/password/reset/confirm/v1,maas,root-account,password/reset/confirm,v1,Consumer root,Set a new root password from the reset mail,No,-,-
+/maas/root-account/password/change/v1,maas,root-account,password/change,v1,Consumer root,Change the root password,No,-,-
+/maas/root-account/mail/update/v1,maas,root-account,mail/update,v1,Consumer root,Change the root contact mail id,No,3,-
+/maas/staff-account/invite/accept/v1,maas,staff-account,invite/accept,v1,Consumer staff,Accept the invite sent to the role's mail id and set a password (first sign-in),No,-,-
+/maas/staff-account/login/v1,maas,staff-account,login,v1,Consumer staff,Internal role signs in,No,-,-
+/maas/staff-account/logout/v1,maas,staff-account,logout,v1,Consumer staff,Internal role signs out,No,-,-
+/maas/staff-account/session/refresh/v1,maas,staff-account,session/refresh,v1,Consumer staff,Keep the session alive,No,-,-
+/maas/staff-account/password/reset/request/v1,maas,staff-account,password/reset/request,v1,Consumer staff,Request a password reset by mail,No,-,-
+/maas/staff-account/password/reset/confirm/v1,maas,staff-account,password/reset/confirm,v1,Consumer staff,Set a new password from the reset mail,No,-,-
+/maas/staff-account/password/change/v1,maas,staff-account,password/change,v1,Consumer staff,Change own password,No,-,-
+/maas/owner-account/login/v1,maas,owner-account,login,v1,Owner operator,"Owner role (manager, developer or operator) signs in",No,-,-
+/maas/owner-account/logout/v1,maas,owner-account,logout,v1,Owner operator,Owner role signs out,No,-,-
+/maas/owner-account/session/refresh/v1,maas,owner-account,session/refresh,v1,Owner operator,Keep the Owner session alive,No,-,-
+/maas/owner-account/invite/accept/v1,maas,owner-account,invite/accept,v1,Owner operator,Accept the invite sent to the Owner role's mail id and set a password,No,-,-
+/maas/owner-account/password/reset/request/v1,maas,owner-account,password/reset/request,v1,Owner operator,Request a password reset by mail,No,-,-
+/maas/owner-account/password/reset/confirm/v1,maas,owner-account,password/reset/confirm,v1,Owner operator,Set a new password from the reset mail,No,-,-
+/maas/owner-account/password/change/v1,maas,owner-account,password/change,v1,Owner operator,Change own password,No,-,-
+/maas/role-mail/list/v1,maas,role-mail,list,v1,Consumer root,List the mail ids that have access to each role,No,2,-
+/maas/role-mail/assign/v1,maas,role-mail,assign,v1,Consumer root,Give a mail id access to a role,No,2,-
+/maas/role-mail/remove/v1,maas,role-mail,remove,v1,Consumer root,Remove a mail id's access to a role,No,2,-
+/maas/role-mail/invite/send/v1,maas,role-mail,invite/send,v1,System,Send the sign-in invite to the assigned mail id,No,2,-
+/maas/owner-role/create/v1,maas,owner-role,create,v1,Owner manager,"Create an Owner role (manager, developer, operator)",No,-,-
+/maas/owner-role/read/v1,maas,owner-role,read,v1,Owner manager,View Owner roles,No,-,-
+/maas/owner-role/update/v1,maas,owner-role,update,v1,Owner manager,Edit an Owner role,No,-,-
+/maas/owner-role/deactivate/v1,maas,owner-role,deactivate,v1,Owner manager,Deactivate an Owner role,No,-,-
+/maas/owner-role-mail/list/v1,maas,owner-role-mail,list,v1,Owner manager,List the mail ids that have access to each Owner role,No,-,-
+/maas/owner-role-mail/assign/v1,maas,owner-role-mail,assign,v1,Owner manager,Give a mail id access to an Owner role,No,-,-
+/maas/owner-role-mail/remove/v1,maas,owner-role-mail,remove,v1,Owner manager,Remove a mail id's access to an Owner role,No,-,-
+/maas/owner-role-mail/invite/send/v1,maas,owner-role-mail,invite/send,v1,System,Send the sign-in invite to the assigned Owner mail id,No,-,-
+/maas/api-key/issue/v1,maas,api-key,issue,v1,Owner developer,Issue an API key to a Consumer,No,-,-
+/maas/api-key/rotate/v1,maas,api-key,rotate,v1,Owner developer,Rotate a Consumer's API key,No,-,-
+/maas/api-key/revoke/v1,maas,api-key,revoke,v1,Owner developer,Revoke a Consumer's API key,No,-,-
+/maas/api-key/list/v1,maas,api-key,list,v1,Consumer root,View own API keys,No,-,-
+/maas/endpoint-version/publish/v1,maas,endpoint-version,publish,v1,Owner developer,Publish a new version of an endpoint,No,-,-
+/maas/endpoint-version/retire/v1,maas,endpoint-version,retire,v1,Owner developer,Retire an old endpoint version,No,-,-
+/maas/endpoint-version/read/v1,maas,endpoint-version,read,v1,Consumer root,See endpoint versions available to the Consumer,No,-,-
+/maas/service/opt-in/request/v1,maas,service,opt-in/request,v1,Consumer root,Request to opt into a service (maas is added automatically),No,8,-
+/maas/endpoint/opt-in/request/v1,maas,endpoint,opt-in/request,v1,Consumer root,Request to opt into a single endpoint,No,8,-
+/maas/endpoint/opt-in/request/read/v1,maas,endpoint,opt-in/request/read,v1,Owner operator,View opt-in requests from Consumers,No,8,-
+/maas/audit/log/write/v1,maas,audit,log/write,v1,System,"Record every endpoint call (who, what, when)",No,-,-
+/maas/audit/log/read/v1,maas,audit,log/read,v1,Consumer root,View the Consumer's audit log,No,-,-
+/maas/audit/log/export/v1,maas,audit,log/export,v1,Consumer root,Export the Consumer's audit log,No,-,-
+/maas/audit/owner-log/read/v1,maas,audit,owner-log/read,v1,Owner manager,View the Owner-side audit log,No,-,-
+/maas/service-identity/permission/read/v1,maas,service-identity,permission/read,v1,Consumer root,View what AI and system steps may do,No,-,-
+/maas/service-identity/permission/assign/v1,maas,service-identity,permission/assign,v1,Consumer root,Limit an AI or system step to specific endpoints,No,-,-
+/maas/partner/call/relay/v1,maas,partner,call/relay,v1,System,"Carry a call from one Consumer to a partner through the interlinking API, limited to enabled endpoints",No,10,-
+/maas/partner/call/log/read/v1,maas,partner,call/log/read,v1,Consumer root,View calls relayed to and from partners,No,10,-
+/maas/location/store/nearby/find/v1,maas,location,store/nearby/find,v1,Customer,Find the nearest store from the Customer's location,No,71,-
+/maas/impact/baseline/method/define/v1,maas,impact,baseline/method/define,v1,Owner manager,Define how the without-AI baseline is estimated,No,78,-
+/maas/impact/baseline/method/read/v1,maas,impact,baseline/method/read,v1,Consumer root,View the baseline method behind a figure,No,82,-
+/paas/catalog/product/create/v1,paas,catalog,product/create,v1,Consumer staff,List a new product,No,14,maas
+/paas/catalog/product/read/v1,paas,catalog,product/read,v1,Consumer staff,View products (staff list),No,14,maas
+/paas/catalog/product/view/v1,paas,catalog,product/view,v1,Customer,View a product page,No,14,maas
+/paas/catalog/product/update/v1,paas,catalog,product/update,v1,Consumer staff,Edit a product,No,14,maas
+/paas/catalog/product/archive/v1,paas,catalog,product/archive,v1,Consumer staff,Remove a product from sale,No,14,maas
+/paas/catalog/category/create/v1,paas,catalog,category/create,v1,Consumer staff,Create a category,No,14,maas
+/paas/catalog/category/update/v1,paas,catalog,category/update,v1,Consumer staff,Edit a category,No,14,maas
+/paas/catalog/search/text/v1,paas,catalog,search/text,v1,Customer,Search by text,No,14,maas
+/paas/catalog/search/voice/v1,paas,catalog,search/voice,v1,Customer,Search by voice,Yes,2,maas
+/paas/catalog/search/image/v1,paas,catalog,search/image,v1,Customer,Snap a photo to find the same or similar item,Yes,21,maas
+/paas/order/cart/add/v1,paas,order,cart/add,v1,Customer,Add an item to cart,No,15,maas
+/paas/order/cart/remove/v1,paas,order,cart/remove,v1,Customer,Remove an item from cart,No,15,maas
+/paas/order/cart/read/v1,paas,order,cart/read,v1,Customer,View cart,No,15,maas
+/paas/order/checkout/place/v1,paas,order,checkout/place,v1,Customer,Place an order,No,15,maas
+/paas/order/read/customer/v1,paas,order,read/customer,v1,Customer,View own orders,No,15,maas
+/paas/order/read/staff/v1,paas,order,read/staff,v1,Consumer staff,View orders,No,15,maas
+/paas/order/cancel/customer/v1,paas,order,cancel/customer,v1,Customer,Cancel own order,No,15,maas
+/paas/order/status/update/v1,paas,order,status/update,v1,Consumer staff,Update order status,No,15,maas
+/paas/offline-sale/record/v1,paas,offline-sale,record,v1,Consumer staff,Record an in-person sale in the same order record,No,70,maas
+/paas/inventory/stock/read/v1,paas,inventory,stock/read,v1,Consumer staff,View stock,No,16,maas
+/paas/inventory/stock/update/v1,paas,inventory,stock/update,v1,Consumer staff,Update stock count,No,16,maas
+/paas/inventory/stock/adjust/v1,paas,inventory,stock/adjust,v1,Consumer staff,"Adjust stock with a reason (damage, loss, correction)",No,16,maas
+/paas/inventory/low-stock/alert/v1,paas,inventory,low-stock/alert,v1,System,Alert staff on low stock,No,16,maas
+/paas/store-stock/read/v1,paas,store-stock,read,v1,Customer,See stock per store location,No,68,maas
+/paas/lifecycle/record/create/v1,paas,lifecycle,record/create,v1,System,Create the lifecycle record at intake,No,17,maas
+/paas/lifecycle/record/read/v1,paas,lifecycle,record/read,v1,Consumer staff,View an item's lifecycle,No,17,maas
+/paas/lifecycle/state/update/v1,paas,lifecycle,state/update,v1,System,Move an item to its next state,No,17,maas
+/paas/passport/generate/v1,paas,passport,generate,v1,System,Generate the digital product passport,No,32,maas
+/paas/passport/read/v1,paas,passport,read,v1,Customer,"View a passport (origin, repairs, grades, carbon savings)",No,32,maas
+/paas/passport/scan/v1,paas,passport,scan,v1,Customer,Scan a QR to open a passport,No,32,maas
+/paas/passport/ownership/transfer/v1,paas,passport,ownership/transfer,v1,System,Pass the passport to the next owner on resale,No,32,maas
+/paas/bid/rules/ai-limits/set/v1,paas,bid,rules/ai-limits/set,v1,Consumer root,Set the limits the AI bot may negotiate within,No,18a,maas
+/paas/bid/ai/start/v1,paas,bid,ai/start,v1,Customer,Start an AI-assisted bid,Yes,18a,maas
+/paas/bid/ai/counter-offer/send/v1,paas,bid,ai/counter-offer/send,v1,AI,Bot sends a counter-offer to the Customer,Yes,18a,maas
+/paas/bid/ai/customer-reply/v1,paas,bid,ai/customer-reply,v1,Customer,Customer replies to the bot,Yes,18a,maas
+/paas/bid/ai/counter-offer/voice/v1,paas,bid,ai/counter-offer/voice,v1,Customer,Customer counters by voice,Yes,20,maas
+/paas/bid/ai/finalize/handoff/v1,paas,bid,ai/finalize/handoff,v1,AI,Bot hands the finalized deal to the Consumer,Yes,18a,maas
+/paas/bid/ai/decision/accept/v1,paas,bid,ai/decision/accept,v1,Consumer staff,Consumer accepts the finalized deal,No,18a,maas
+/paas/bid/ai/decision/reject/v1,paas,bid,ai/decision/reject,v1,Consumer staff,Consumer rejects the finalized deal,No,18a,maas
+/paas/bid/human/start/v1,paas,bid,human/start,v1,Customer,Start a human-only bid with the Consumer,No,18b,maas
+/paas/bid/human/offer/respond/v1,paas,bid,human/offer/respond,v1,Consumer staff,Consumer responds to a bid,No,18b,maas
+/paas/bid/human/counter/customer/v1,paas,bid,human/counter/customer,v1,Customer,Customer counters,No,18b,maas
+/paas/bid/human/accept/v1,paas,bid,human/accept,v1,Consumer staff,Accept a human bid,No,18b,maas
+/paas/bid/human/reject/v1,paas,bid,human/reject,v1,Consumer staff,Reject a human bid,No,18b,maas
+/paas/bid/multi-seller/open/v1,paas,bid,multi-seller/open,v1,Customer,Open a multi-seller bid request,No,19,maas
+/paas/bid/multi-seller/seller-match/v1,paas,bid,multi-seller/seller-match,v1,AI,"Match eligible sellers (stock, location, rating, condition)",Yes,19,maas
+/paas/bid/multi-seller/offer/submit/v1,paas,bid,multi-seller/offer/submit,v1,Partner,A seller submits an offer,No,19,"maas, partner link"
+/paas/bid/multi-seller/rank/read/v1,paas,bid,multi-seller/rank/read,v1,Customer,"View offers ranked by price, delivery, condition, reliability",No,19,maas
+/paas/bid/multi-seller/award/v1,paas,bid,multi-seller/award,v1,System,Award the best-fit offer,No,19,maas
+/paas/bid/rules/price-limits/set/v1,paas,bid,rules/price-limits/set,v1,Consumer root,Set bid floors and ceilings,No,58,maas
+/paas/bid/rules/window/set/v1,paas,bid,rules/window/set,v1,Consumer root,Set the auction window,No,19,maas
+/paas/bid/rules/seller-eligibility/set/v1,paas,bid,rules/seller-eligibility/set,v1,Consumer root,Set which sellers may bid,No,19,maas
+/paas/bid/guardrail/anomaly/detect/v1,paas,bid,guardrail/anomaly/detect,v1,System,Detect collusion or price manipulation,Yes,58,maas
+/paas/bid/guardrail/review/decide/v1,paas,bid,guardrail/review/decide,v1,Consumer staff,Decide a flagged high-value bid,No,60,maas
+/paas/recommendation/product/read/v1,paas,recommendation,product/read,v1,Customer,Get product recommendations,Yes,22,maas
+/paas/recommendation/sustainable/read/v1,paas,recommendation,sustainable/read,v1,Customer,Get greener alternatives,Yes,75,maas
+/paas/explain/decision/read/v1,paas,explain,decision/read,v1,Customer,"Read the plain-language reason for a price, award or recommendation",Yes,35,maas
+/paas/assistant/config/update/v1,paas,assistant,config/update,v1,Consumer root,"Set assistant scope, tone and enabled modes",No,76,maas
+/paas/assistant/chat/text-to-text/v1,paas,assistant,chat/text-to-text,v1,Customer,"Shopping assistant, text in and text out",Yes,76,maas
+/paas/assistant/chat/text-to-speech/v1,paas,assistant,chat/text-to-speech,v1,Customer,"Text in, spoken reply",Yes,72,maas
+/paas/assistant/voice/speech-to-text/v1,paas,assistant,voice/speech-to-text,v1,Customer,"Spoken in, text reply",Yes,72,maas
+/paas/assistant/voice/speech-to-speech/v1,paas,assistant,voice/speech-to-speech,v1,Customer,"Spoken in, spoken reply",Yes,23,maas
+/paas/forecast/demand/run/v1,paas,forecast,demand/run,v1,System,Run demand and inventory forecast per SKU and location,Yes,24,maas
+/paas/forecast/demand/read/v1,paas,forecast,demand/read,v1,Consumer staff,View forecasts,No,24,maas
+/paas/forecast/reorder/suggest/v1,paas,forecast,reorder/suggest,v1,AI,Suggest reorder points and safety stock,Yes,24,maas
+/paas/forecast/reorder/approve/v1,paas,forecast,reorder/approve,v1,Consumer staff,Approve a reorder suggestion,No,24,maas
+/paas/pricing/dynamic/rules/set/v1,paas,pricing,dynamic/rules/set,v1,Consumer root,Set dynamic pricing rules,No,25,maas
+/paas/pricing/dynamic/suggest/v1,paas,pricing,dynamic/suggest,v1,AI,"Suggest a price from demand, condition and competition",Yes,25,maas
+/paas/pricing/dynamic/apply/v1,paas,pricing,dynamic/apply,v1,Consumer staff,Apply a suggested price,No,25,maas
+/paas/pricing/shelf-life-decay/apply/v1,paas,pricing,shelf-life-decay/apply,v1,System,Lower price along remaining shelf or season life,Yes,27,maas
+/paas/pricing/personalized/offer/read/v1,paas,pricing,personalized/offer/read,v1,Customer,See a personalized offer,Yes,53,maas
+/paas/auction/surplus/open/v1,paas,auction,surplus/open,v1,System,Open an auction when surplus is forecast,Yes,26,maas
+/paas/auction/surplus/bid/v1,paas,auction,surplus/bid,v1,Customer,Bid in a surplus auction,No,26,maas
+/paas/auction/surplus/close/v1,paas,auction,surplus/close,v1,System,Close the auction and award,No,26,maas
+/paas/stock-rebalance/proposal/generate/v1,paas,stock-rebalance,proposal/generate,v1,AI,Propose moving stock between sellers or locations,Yes,28,"maas, partner link"
+/paas/stock-rebalance/proposal/accept/v1,paas,stock-rebalance,proposal/accept,v1,Consumer staff,Accept a transfer proposal,No,28,maas
+/paas/stock-rebalance/proposal/reject/v1,paas,stock-rebalance,proposal/reject,v1,Consumer staff,Reject a transfer proposal,No,28,maas
+/paas/seller-trust/score/update/v1,paas,seller-trust,score/update,v1,System,Update a seller's trust score,No,29,maas
+/paas/seller-trust/score/read/v1,paas,seller-trust,score/read,v1,Consumer staff,View a seller's trust score,No,29,maas
+/paas/return-risk/checkout/guidance/read/v1,paas,return-risk,checkout/guidance/read,v1,Customer,"Get size, fit or compatibility guidance before buying",Yes,30,maas
+/paas/future-value/quote/read/v1,paas,future-value,quote/read,v1,Customer,See the guaranteed future buy-back value,Yes,31,maas
+/paas/future-value/guarantee/issue/v1,paas,future-value,guarantee/issue,v1,System,Issue the guarantee at purchase,No,31,maas
+/paas/future-value/guarantee/redeem/v1,paas,future-value,guarantee/redeem,v1,Customer,Redeem the guarantee,No,31,maas
+/paas/trade-in/nudge/send/v1,paas,trade-in,nudge/send,v1,AI,Invite a trade-in while value is still high,Yes,47,maas
+/paas/environment/origin/submit/v1,paas,environment,origin/submit,v1,Consumer staff,"Submit how a product is made (materials, process)",No,73,maas
+/paas/environment/origin/verify/v1,paas,environment,origin/verify,v1,AI,Check origin and manufacturing data,Yes,73,maas
+/paas/environment/score/calculate/v1,paas,environment,score/calculate,v1,System,"Calculate the environmental score (impact, recycling factor)",Yes,74,maas
+/paas/environment/score/read/v1,paas,environment,score/read,v1,Customer,View a product's environmental score,No,74,maas
+/paas/environment/offer-score/read/v1,paas,environment,offer-score/read,v1,Customer,See the carbon impact of each offer,No,33,maas
+/paas/environment/recycling-factor/read/v1,paas,environment,recycling-factor/read,v1,Customer,See how recyclable a product is,No,74,maas
+/paas/green-credits/rules/set/v1,paas,green-credits,rules/set,v1,Consumer root,Set how credits are earned and redeemed,No,34,maas
+/paas/green-credits/earn/v1,paas,green-credits,earn,v1,System,Award credits,No,34,maas
+/paas/green-credits/balance/read/v1,paas,green-credits,balance/read,v1,Customer,View credit balance,No,34,maas
+/paas/green-credits/redeem/v1,paas,green-credits,redeem,v1,Customer,Redeem credits,No,34,maas
+/paas/personalization/limits/set/v1,paas,personalization,limits/set,v1,Consumer root,Set limits on personalization,No,53,maas
+/paas/personalization/profile/build/v1,paas,personalization,profile/build,v1,System,Build a per-Customer profile from activity with this Consumer,Yes,52,maas
+/paas/personalization/profile/reset/v1,paas,personalization,profile/reset,v1,Customer,Reset own profile data,No,52,maas
+/paas/personalization/display/render/v1,paas,personalization,display/render,v1,System,Fill the Consumer's template with data for this Customer,Yes,54,maas
+/paas/insights/behavior/read/v1,paas,insights,behavior/read,v1,Consumer staff,"See why Customers buy, return or leave",Yes,55,maas
+/paas/feedback/review/submit/v1,paas,feedback,review/submit,v1,Customer,Submit a review,No,56,maas
+/paas/insights/feedback/sentiment/read/v1,paas,insights,feedback/sentiment/read,v1,Consumer staff,See common issues from reviews,Yes,56,maas
+/paas/fraud/order/detect/v1,paas,fraud,order/detect,v1,System,Flag suspicious orders and payments,Yes,57,maas
+/paas/fraud/order/flag/read/v1,paas,fraud,order/flag/read,v1,Consumer staff,View flagged orders,No,57,maas
+/paas/fraud/review/decide/v1,paas,fraud,review/decide,v1,Consumer staff,Decide a flagged order,No,60,maas
+/paas/fraud/threshold/update/v1,paas,fraud,threshold/update,v1,Consumer root,Set order-fraud thresholds,No,57,maas
+/paas/basket/frequently-bought/read/v1,paas,basket,frequently-bought/read,v1,Customer,See items often bought together,Yes,61,maas
+/paas/basket/bundle/suggest/v1,paas,basket,bundle/suggest,v1,AI,Propose bundles and cross-sell offers,Yes,62,maas
+/paas/basket/bundle/create/v1,paas,basket,bundle/create,v1,Consumer staff,Create a bundle,No,62,maas
+/paas/segment/generate/v1,paas,segment,generate,v1,System,Group Customers by behavior and value,Yes,63,maas
+/paas/segment/read/v1,paas,segment,read,v1,Consumer staff,View segments,No,63,maas
+/paas/segment/offer/send/v1,paas,segment,offer/send,v1,Consumer staff,Send an offer to a segment,No,64,maas
+/paas/reserve/item/create/v1,paas,reserve,item/create,v1,Customer,Reserve or pre-book an item online,No,65,maas
+/paas/reserve/item/read/v1,paas,reserve,item/read,v1,Customer,View own reservations,No,65,maas
+/paas/reserve/item/cancel/v1,paas,reserve,item/cancel,v1,Customer,Cancel a reservation,No,65,maas
+/paas/pickup/store/select/v1,paas,pickup,store/select,v1,Customer,Choose a store for collection,No,66,maas
+/paas/pickup/handover/code/generate/v1,paas,pickup,handover/code/generate,v1,System,Create a collection code or QR,No,67,maas
+/paas/pickup/handover/code/verify/v1,paas,pickup,handover/code/verify,v1,Consumer staff,Staff verify the Customer's code,No,67,maas
+/paas/pickup/handover/mark-collected/v1,paas,pickup,handover/mark-collected,v1,Consumer staff,Staff mark an order collected,No,67,maas
+/paas/parts/listing/create/v1,paas,parts,listing/create,v1,Consumer staff,List salvaged parts for sale,No,49,maas
+/paas/parts/listing/read/v1,paas,parts,listing/read,v1,Customer,Browse parts,No,49,maas
+/paas/locale/listing/translate/v1,paas,locale,listing/translate,v1,AI,Translate listings,Yes,71,maas
+/paas/locale/price/currency-convert/v1,paas,locale,price/currency-convert,v1,System,Show prices in the Customer's currency,No,71,maas
+/paas/analytics/sales/read/v1,paas,analytics,sales/read,v1,Consumer staff,View sales analytics,No,11,maas
+/paas/impact/baseline/record/v1,paas,impact,baseline/record,v1,System,Record what would have happened without the AI (e.g. unsold stock),No,78,maas
+/paas/impact/event/record/v1,paas,impact,event/record,v1,System,Record the estimated saving from each event,No,79,maas
+/paas/impact/report/read/v1,paas,impact,report/read,v1,Consumer root,View Product-service impact,No,80,maas
+/paas/payment/gateway/process/v1,paas,payment,gateway/process,v1,Customer,General payment gateway: stands for a payment made through whichever third-party provider the Consumer uses (provider not specified by the Owner),No,-,"maas, Consumer's own third-party provider"
+/paas/payment/invoice/read/v1,paas,payment,invoice/read,v1,Customer,View an invoice for an order,No,-,maas
+/paas/promotion/coupon/create/v1,paas,promotion,coupon/create,v1,Consumer staff,Create a coupon or discount,No,-,maas
+/paas/promotion/coupon/deactivate/v1,paas,promotion,coupon/deactivate,v1,Consumer staff,Deactivate a coupon,No,-,maas
+/paas/promotion/coupon/apply/v1,paas,promotion,coupon/apply,v1,Customer,Apply a coupon at checkout,No,-,maas
+/paas/wishlist/item/add/v1,paas,wishlist,item/add,v1,Customer,Add an item to the wishlist,No,-,maas
+/paas/wishlist/item/remove/v1,paas,wishlist,item/remove,v1,Customer,Remove an item from the wishlist,No,-,maas
+/paas/wishlist/read/v1,paas,wishlist,read,v1,Customer,View the wishlist,No,-,maas
+/paas/feedback/review/read/v1,paas,feedback,review/read,v1,Customer,Read reviews on a product,No,56,maas
+/paas/impact/report/generate/v1,paas,impact,report/generate,v1,System,Generate the Product-service impact report,Yes,80,maas
+/paas/impact/rebound/estimate/v1,paas,impact,rebound/estimate,v1,System,Estimate extra consumption caused by cheaper bids and easier buying,Yes,80,maas
+/taas/delivery/rules/set/v1,taas,delivery,rules/set,v1,Consumer root,Set delivery options and rules,No,36,maas
+/taas/delivery/option/list/v1,taas,delivery,option/list,v1,Customer,See delivery options,No,36,maas
+/taas/delivery/option/select/v1,taas,delivery,option/select,v1,Customer,Choose a delivery option,No,36,maas
+/taas/delivery/window/select/v1,taas,delivery,window/select,v1,Customer,Choose a delivery window,No,36,maas
+/taas/shipment/create/v1,taas,shipment,create,v1,Consumer staff,Create a shipment for a sold item,No,36,maas
+/taas/shipment/read/staff/v1,taas,shipment,read/staff,v1,Consumer staff,View shipments,No,36,maas
+/taas/shipment/status/update/v1,taas,shipment,status/update,v1,Consumer staff,Update shipment status,No,36,maas
+/taas/shipment/cancel/v1,taas,shipment,cancel,v1,Consumer staff,Cancel a shipment,No,36,maas
+/taas/tracking/read/v1,taas,tracking,read,v1,Customer,Track an order,No,37,maas
+/taas/tracking/notification/send/v1,taas,tracking,notification/send,v1,System,Notify the Customer of delivery updates,No,37,maas
+/taas/delivery/pricing/dynamic/suggest/v1,taas,delivery,pricing/dynamic/suggest,v1,AI,Suggest a delivery price,Yes,25,maas
+/taas/delivery/pricing/dynamic/apply/v1,taas,delivery,pricing/dynamic/apply,v1,Consumer staff,Apply a suggested delivery price,No,25,maas
+/taas/route/shortest/calculate/v1,taas,route,shortest/calculate,v1,System,Calculate the shortest path,No,38,maas
+/taas/route/green/recommend/v1,taas,route,green/recommend,v1,AI,Recommend a low-pollution route and transport mode,Yes,38,maas
+/taas/route/green/select/v1,taas,route,green/select,v1,Consumer staff,Choose the recommended green option,No,38,maas
+/taas/route/green/explain/v1,taas,route,green/explain,v1,AI,Explain why this route and mode were recommended,Yes,35,maas
+/taas/route/green/impact/v1,taas,route,green/impact,v1,System,Record emissions saved against the default route,No,79,maas
+/taas/route/optimize/recommend/v1,taas,route,optimize/recommend,v1,Consumer staff,Recommend the best route (shortest / fastest / cheapest / greenest) across one or more stops,Yes,38,maas
+/taas/vehicle/recommend/v1,taas,vehicle,recommend,v1,Consumer staff,Recommend the vehicle type for a shipment from its load and distance,Yes,38,maas
+/taas/delivery/eta/predict/v1,taas,delivery,eta/predict,v1,Consumer staff,Predict the delivery date and time,Yes,36,maas
+/taas/delivery/slot/recommend/v1,taas,delivery,slot/recommend,v1,Consumer staff,Recommend delivery slots with their on-time likelihood,Yes,36,maas
+/taas/explain/decision/read/v1,taas,explain,decision/read,v1,Consumer staff,Read the plain-language reason for a route / vehicle / slot or delivery-time recommendation,Yes,35,maas
+/taas/recommendation/accept/v1,taas,recommendation,accept,v1,Consumer staff,Accept an AI transport recommendation for a shipment,No,35,maas
+/taas/recommendation/override/v1,taas,recommendation,override,v1,Consumer staff,Override an AI transport recommendation with a reason,No,35,maas
+/taas/carbon/footprint/delivery/read/v1,taas,carbon,footprint/delivery/read,v1,Customer,See the delivery's carbon footprint (distance-based),No,33,maas
+/taas/carbon/footprint/offer/read/v1,taas,carbon,footprint/offer/read,v1,Customer,See the footprint of each offer's delivery,No,33,maas
+/taas/environment/transport-score/read/v1,taas,environment,transport-score/read,v1,Customer,View environmental score of a transport option,No,74,maas
+/taas/reverse/route/recommend/v1,taas,reverse,route/recommend,v1,AI,Recommend the highest-value channel for a returned item,Yes,39,maas
+/taas/reverse/route/resale/assign/v1,taas,reverse,route/resale/assign,v1,Consumer staff,Route to resale,No,39,maas
+/taas/reverse/route/refurbish/assign/v1,taas,reverse,route/refurbish/assign,v1,Consumer staff,Route to refurbishment,No,39,maas
+/taas/reverse/route/donate/assign/v1,taas,reverse,route/donate/assign,v1,Consumer staff,Route to donation,No,39,maas
+/taas/reverse/route/parts/assign/v1,taas,reverse,route/parts/assign,v1,Consumer staff,Route to parts harvesting,No,39,maas
+/taas/reverse/route/recycle/assign/v1,taas,reverse,route/recycle/assign,v1,Consumer staff,Route to recycling,No,39,maas
+/taas/reverse/pickup/request/v1,taas,reverse,pickup/request,v1,Customer,Request pickup of a return,No,41,maas
+/taas/reverse/pickup/schedule/v1,taas,reverse,pickup/schedule,v1,Consumer staff,Schedule the pickup,No,41,maas
+/taas/reverse/dropoff/store/leg/assign/v1,taas,reverse,dropoff/store/leg/assign,v1,Consumer staff,Plan the leg from a store drop-off,No,41,maas
+/taas/pickup/store-leg/assign/v1,taas,pickup,store-leg/assign,v1,Consumer staff,Plan the leg for store pickup instead of delivery,No,66,maas
+/taas/peer-forward/match/v1,taas,peer-forward,match,v1,System,Match a resaleable return to the next buyer,Yes,40,maas
+/taas/peer-forward/ship/v1,taas,peer-forward,ship,v1,Customer,Returner ships directly to the next buyer,No,40,maas
+/taas/peer-forward/confirm/v1,taas,peer-forward,confirm,v1,Customer,Next buyer confirms receipt,No,40,maas
+/taas/transfer/stock/create/v1,taas,transfer,stock/create,v1,Consumer staff,Create an inter-seller or inter-location transfer,No,28,maas
+/taas/transfer/stock/status/update/v1,taas,transfer,stock/status/update,v1,Consumer staff,Update transfer status,No,28,maas
+/taas/transfer/stock/receive/v1,taas,transfer,stock/receive,v1,Consumer staff,Confirm transfer received,No,28,maas
+/taas/refurbisher/shipment/create/v1,taas,refurbisher,shipment/create,v1,Consumer staff,Ship an item to a refurbisher,No,48,maas
+/taas/partner/transport/enable/v1,taas,partner,transport/enable,v1,Consumer root,Use a partner's transport service,No,10,"maas, maas partner link"
+/taas/partner/transport/offer/v1,taas,partner,transport/offer,v1,Consumer root,Offer own transport to partner Consumers,No,10,"maas, maas partner link"
+/taas/partner/shipment/relay/v1,taas,partner,shipment/relay,v1,System,Pass a shipment to the partner,No,10,"maas, maas partner link"
+/taas/assistant/config/update/v1,taas,assistant,config/update,v1,Consumer root,Set delivery-assistant scope and modes,No,76,maas
+/taas/assistant/delivery/text-to-text/v1,taas,assistant,delivery/text-to-text,v1,Customer,Ask about delivery by text,Yes,76,maas
+/taas/assistant/delivery/text-to-speech/v1,taas,assistant,delivery/text-to-speech,v1,Customer,"Text in, spoken reply",Yes,72,maas
+/taas/assistant/delivery/speech-to-text/v1,taas,assistant,delivery/speech-to-text,v1,Customer,"Spoken in, text reply",Yes,72,maas
+/taas/assistant/delivery/speech-to-speech/v1,taas,assistant,delivery/speech-to-speech,v1,Customer,"Spoken in, spoken reply",Yes,23,maas
+/taas/personalization/delivery-options/display/v1,taas,personalization,delivery-options/display,v1,System,Show delivery options tailored to the Customer,Yes,54,maas
+/taas/fraud/delivery/anomaly/detect/v1,taas,fraud,delivery/anomaly/detect,v1,System,Flag address-change or failed-delivery abuse,Yes,57,maas
+/taas/fraud/review/decide/v1,taas,fraud,review/decide,v1,Consumer staff,Decide a flagged delivery case,No,60,maas
+/taas/locale/service-area/set/v1,taas,locale,service-area/set,v1,Consumer root,Set local or global delivery area,No,71,maas
+/taas/locale/address/validate/v1,taas,locale,address/validate,v1,System,Validate addresses by region,No,71,maas
+/taas/locale/notification/language/send/v1,taas,locale,notification/language/send,v1,System,Send delivery notices in the Customer's language,Yes,71,maas
+/taas/insights/delivery/read/v1,taas,insights,delivery/read,v1,Consumer staff,See delivery delays and complaints patterns,Yes,55,maas
+/taas/analytics/delivery/read/v1,taas,analytics,delivery/read,v1,Consumer staff,View delivery analytics,No,11,maas
+/taas/impact/baseline/record/v1,taas,impact,baseline/record,v1,System,Record the default route and mode as baseline,No,78,maas
+/taas/impact/report/read/v1,taas,impact,report/read,v1,Consumer root,View Transport-service impact,No,80,maas
+/taas/impact/report/generate/v1,taas,impact,report/generate,v1,System,Generate the Transport-service impact report,Yes,80,maas
+/saas/ticket/create/query/v1,saas,ticket,create/query,v1,Customer,Raise a query,No,42,maas
+/saas/ticket/create/return/v1,saas,ticket,create/return,v1,Customer,Raise a return ticket,No,43,maas
+/saas/ticket/create/repair/v1,saas,ticket,create/repair,v1,Customer,Raise a repair ticket,No,43,maas
+/saas/ticket/create/trade-in/v1,saas,ticket,create/trade-in,v1,Customer,Raise a trade-in ticket,No,46,maas
+/saas/ticket/read/customer/v1,saas,ticket,read/customer,v1,Customer,View own tickets,No,42,maas
+/saas/ticket/read/staff/v1,saas,ticket,read/staff,v1,Consumer staff,View tickets,No,42,maas
+/saas/ticket/reply/customer/v1,saas,ticket,reply/customer,v1,Customer,Customer replies,No,42,maas
+/saas/ticket/reply/staff/v1,saas,ticket,reply/staff,v1,Consumer staff,Staff replies,No,42,maas
+/saas/ticket/assign/v1,saas,ticket,assign,v1,Consumer staff,Assign a ticket,No,42,maas
+/saas/ticket/status/update/v1,saas,ticket,status/update,v1,Consumer staff,Update ticket status,No,42,maas
+/saas/ticket/escalate/v1,saas,ticket,escalate,v1,Consumer staff,Escalate a ticket,No,42,maas
+/saas/ticket/close/v1,saas,ticket,close,v1,Consumer staff,Close a ticket,No,42,maas
+/saas/ticket/status/read/v1,saas,ticket,status/read,v1,Customer,Track after-sales progress,No,42,maas
+/saas/return/policy/set/v1,saas,return,policy/set,v1,Consumer root,Set return rules,No,43,maas
+/saas/return/request/create/v1,saas,return,request/create,v1,Customer,Start a guided return,No,43,maas
+/saas/return/request/read/v1,saas,return,request/read,v1,Consumer staff,View return requests,No,43,maas
+/saas/return/request/approve/v1,saas,return,request/approve,v1,Consumer staff,Approve a return,No,43,maas
+/saas/return/request/reject/v1,saas,return,request/reject,v1,Consumer staff,Reject a return,No,43,maas
+/saas/return/refund/issue/v1,saas,return,refund/issue,v1,Consumer staff,Issue a refund,No,43,maas
+/saas/repair/policy/set/v1,saas,repair,policy/set,v1,Consumer root,Set repair rules,No,43,maas
+/saas/repair/request/create/v1,saas,repair,request/create,v1,Customer,Request a repair,No,43,maas
+/saas/repair/status/update/v1,saas,repair,status/update,v1,Consumer staff,Update repair progress,No,43,maas
+/saas/triage/return/route/v1,saas,triage,return/route,v1,AI,Triage a return to the right path,Yes,39,maas
+/saas/grading/threshold/set/v1,saas,grading,threshold/set,v1,Consumer root,Set grade and value thresholds,No,45,maas
+/saas/grading/photo/submit/v1,saas,grading,photo/submit,v1,Customer,Submit photos of the item,No,45,maas
+/saas/grading/photo/analyze/v1,saas,grading,photo/analyze,v1,AI,Grade condition and predict recovery value from photos,Yes,45,maas
+/saas/grading/result/read/v1,saas,grading,result/read,v1,Customer,See the grade and value before shipping,No,45,maas
+/saas/grading/result/override/v1,saas,grading,result/override,v1,Consumer staff,Staff override a grade,No,45,maas
+/saas/trade-in/request/create/v1,saas,trade-in,request/create,v1,Customer,Request a trade-in,No,46,maas
+/saas/trade-in/valuation/read/v1,saas,trade-in,valuation/read,v1,Customer,See the trade-in value,Yes,46,maas
+/saas/trade-in/offer/accept/v1,saas,trade-in,offer/accept,v1,Customer,Accept the trade-in offer,No,46,maas
+/saas/trade-in/process/complete/v1,saas,trade-in,process/complete,v1,Consumer staff,Complete the trade-in,No,46,maas
+/saas/recycling/lifespan/estimate/v1,saas,recycling,lifespan/estimate,v1,AI,Estimate how much longer the item can be used,Yes,44,maas
+/saas/recycling/recyclable-share/estimate/v1,saas,recycling,recyclable-share/estimate,v1,AI,Estimate how much can be recycled,Yes,44,maas
+/saas/recycling/request/create/v1,saas,recycling,request/create,v1,Customer,Request recycling,No,44,"maas, taas leg or partner"
+/saas/recycling/handover/record/v1,saas,recycling,handover/record,v1,Consumer staff,Record handover to a recycler,No,44,maas
+/saas/recycling/certificate/issue/v1,saas,recycling,certificate/issue,v1,System,Issue a recycling certificate,No,44,maas
+/saas/recommendation/reuse/read/v1,saas,recommendation,reuse/read,v1,Customer,Get reuse or repair advice,Yes,75,maas
+/saas/recommendation/recycle/read/v1,saas,recommendation,recycle/read,v1,Customer,Get recycling advice,Yes,75,maas
+/saas/explain/decision/read/v1,saas,explain,decision/read,v1,Customer,Read the reason for a grade or route,Yes,35,maas
+/saas/parts/harvest/assess/v1,saas,parts,harvest/assess,v1,AI,Assess whether an item should be parts-harvested,Yes,49,maas
+/saas/refurbisher/profile/register/v1,saas,refurbisher,profile/register,v1,Partner,"Register a refurbisher's skills, capacity and location",No,48,"maas, partner link"
+/saas/refurbisher/match/run/v1,saas,refurbisher,match/run,v1,AI,Match items to refurbishers,Yes,48,maas
+/saas/refurbisher/bid/submit/v1,saas,refurbisher,bid/submit,v1,Partner,A refurbisher bids for the work,No,48,"maas, partner link"
+/saas/refurbisher/assign/v1,saas,refurbisher,assign,v1,Consumer staff,Assign the work,No,48,maas
+/saas/dispute/open/v1,saas,dispute,open,v1,Customer,Open a dispute with the Consumer,No,50,maas
+/saas/dispute/respond/v1,saas,dispute,respond,v1,Consumer staff,Respond to a dispute,No,50,maas
+/saas/dispute/resolve/v1,saas,dispute,resolve,v1,Consumer staff,Resolve a dispute,No,50,maas
+/saas/dispute/trust-score/feed/v1,saas,dispute,trust-score/feed,v1,System,Feed dispute outcomes into the seller trust score,No,29,maas
+/saas/assistant/config/update/v1,saas,assistant,config/update,v1,Consumer root,Set support-assistant scope and modes,No,76,maas
+/saas/assistant/support/text-to-text/v1,saas,assistant,support/text-to-text,v1,Customer,Ask support by text,Yes,76,maas
+/saas/assistant/support/text-to-speech/v1,saas,assistant,support/text-to-speech,v1,Customer,"Text in, spoken reply",Yes,72,maas
+/saas/assistant/support/speech-to-text/v1,saas,assistant,support/speech-to-text,v1,Customer,"Spoken in, text reply",Yes,72,maas
+/saas/assistant/support/speech-to-speech/v1,saas,assistant,support/speech-to-speech,v1,Customer,"Spoken in, spoken reply",Yes,23,maas
+/saas/fraud/return/screen/v1,saas,fraud,return/screen,v1,System,Screen returns and refunds for abuse,Yes,59,maas
+/saas/fraud/return/flag/read/v1,saas,fraud,return/flag/read,v1,Consumer staff,View flagged returns,No,59,maas
+/saas/fraud/review/decide/v1,saas,fraud,review/decide,v1,Consumer staff,Decide a flagged return,No,60,maas
+/saas/scorecard/customer/read/v1,saas,scorecard,customer/read,v1,Customer,"See own value recovered, waste diverted, carbon saved",No,51,maas
+/saas/scorecard/consumer/read/v1,saas,scorecard,consumer/read,v1,Consumer root,See the Consumer's circularity scorecard,No,51,maas
+/saas/insights/ticket-sentiment/read/v1,saas,insights,ticket-sentiment/read,v1,Consumer staff,See common ticket issues and sentiment,Yes,56,maas
+/saas/analytics/support/read/v1,saas,analytics,support/read,v1,Consumer staff,View support analytics,No,11,maas
+/saas/dropoff/store/create/v1,saas,dropoff,store/create,v1,Customer,"Start a return, repair or trade-in online and drop off at a store",No,69,maas
+/saas/dropoff/store/receive/code-verify/v1,saas,dropoff,store/receive/code-verify,v1,Consumer staff,Staff verify the drop-off code,No,69,maas
+/saas/dropoff/store/receive/mark-received/v1,saas,dropoff,store/receive/mark-received,v1,Consumer staff,Staff mark the item received,No,69,maas
+/saas/dropoff/status/read/v1,saas,dropoff,status/read,v1,Customer,Track the drop-off online,No,69,maas
+/saas/personalization/ticket-view/display/v1,saas,personalization,ticket-view/display,v1,System,Show a ticket view tailored to the Customer,Yes,54,maas
+/saas/locale/ticket/translate/v1,saas,locale,ticket/translate,v1,AI,Translate tickets and replies,Yes,71,maas
+/saas/locale/policy/region/set/v1,saas,locale,policy/region/set,v1,Consumer root,Set region-specific return and repair policy,No,71,maas
+/saas/partner/support/enable/v1,saas,partner,support/enable,v1,Consumer root,Use a partner's support service,No,10,"maas, maas partner link"
+/saas/impact/baseline/record/v1,saas,impact,baseline/record,v1,System,Record what would have been landfilled without the AI route,No,78,maas
+/saas/impact/event/record/v1,saas,impact,event/record,v1,System,Record the saving from each recovery event,No,79,maas
+/saas/impact/report/read/v1,saas,impact,report/read,v1,Consumer root,View Support-service impact,No,80,maas
+/saas/partner/issue/relay/v1,saas,partner,issue/relay,v1,Consumer staff,"Pass a Customer's issue to a partner's support, while the Customer stays with their own Consumer",No,10,"maas, maas partner link"
+/saas/partner/issue/status/read/v1,saas,partner,issue/status/read,v1,Consumer staff,Track the issue passed to the partner,No,10,"maas, maas partner link"
+/saas/impact/report/generate/v1,saas,impact,report/generate,v1,System,Generate the Support-service impact report,Yes,80,maas
