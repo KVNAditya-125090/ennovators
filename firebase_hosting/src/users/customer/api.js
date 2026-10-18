@@ -1,5 +1,7 @@
 // Customer - a shopper who uses a consumer's enabled services, within that consumer's brand.
 import { request, postJson } from '../../services/http';
+import { authHeader } from '../../services/maas/session';
+import { apiUrl } from '../../api';
 import { subscribe, useRevision } from '../../services/sync';
 import { useState, useEffect } from 'react';
 
@@ -18,12 +20,12 @@ export async function callEndpoint(tenantId, endpoint, params = {}, user = {}) {
   const query = endpoint.method === 'GET' || endpoint.method === 'DELETE';
   const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ''));
   const qs = query && Object.keys(clean).length ? `?${new URLSearchParams(clean)}` : '';
-  const res = await fetch(`/api${endpoint.path}${qs}`, {
+  const res = await fetch(apiUrl(`/api${endpoint.path}${qs}`), {
     method: endpoint.method,
     headers: {
+      ...authHeader(),
       'X-Tenant-Id': tenantId || '',
       ...(user.name ? { 'X-User-Name': encodeURIComponent(user.name) } : {}),
-      ...(user.email ? { 'X-User-Email': encodeURIComponent(user.email) } : {}),
       ...(query ? {} : { 'Content-Type': 'application/json' })
     },
     body: query ? undefined : JSON.stringify(clean)

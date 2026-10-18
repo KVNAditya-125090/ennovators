@@ -1,5 +1,7 @@
 // Consumer - consumes the services
 import { request } from '../../services/http';
+import { authHeader } from '../../services/maas/session';
+import { apiUrl } from '../../api';
 import { subscribe } from '../../services/sync';
 
 export const getDashboard = (sku, tenant) =>
@@ -15,9 +17,9 @@ export async function callEndpoint(tenantId, endpoint, params = {}, user = {}) {
   const query = endpoint.method === 'GET' || endpoint.method === 'DELETE';
   const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== ''));
   const qs = query && Object.keys(clean).length ? `?${new URLSearchParams(clean)}` : '';
-  const res = await fetch(`/api${endpoint.path}${qs}`, {
+  const res = await fetch(apiUrl(`/api${endpoint.path}${qs}`), {
     method: endpoint.method,
-    headers: { 'X-Tenant-Id': tenantId || '', ...(user.name ? { 'X-User-Name': encodeURIComponent(user.name) } : {}), ...(user.email ? { 'X-User-Email': encodeURIComponent(user.email) } : {}), ...(query ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { ...authHeader(), 'X-Tenant-Id': tenantId || '', ...(user.name ? { 'X-User-Name': encodeURIComponent(user.name) } : {}), ...(query ? {} : { 'Content-Type': 'application/json' }) },
     body: query ? undefined : JSON.stringify(clean)
   });
   const body = await res.json().catch(() => null);
@@ -48,7 +50,7 @@ let workspaces = {};
 export function loadWorkspace(tenant, email = '') {
   const key = `${tenant || ''}|${email}`;
   if (!workspaces[key]) {
-    workspaces[key] = Promise.all([getDashboard('SKU-WATCH-G3', tenant), loadAccess(tenant, email)])
+    workspaces[key] = Promise.all([getDashboard('', tenant), loadAccess(tenant, email)])
       .then(([dashboard, a]) => ({ tenantId: dashboard.workspace?.tenant?.tenant_id, endpoints: a.endpoints, view: a.view }))
       .catch((err) => { delete workspaces[key]; throw err; });
   }

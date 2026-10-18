@@ -47,7 +47,7 @@ function Shipments() {
           { key: 's', header: 'Status', render: (s) => (can('/taas/shipment/status/update/v1') && s.status !== 'cancelled'
             ? <StatusSelect value={s.status} options={statuses} disabled={act.busy} onChange={(status) => act.run('/taas/shipment/status/update/v1', { shipment_id: s.shipment_id, status }, `${s.shipment_id} marked ${label(status).toLowerCase()}`)} />
             : <Pill value={s.status} />) },
-          { key: 'a', header: '', className: 'text-right', render: (s) => (
+          { key: 'a', header: '', className: 'text-right', sticky: true, render: (s) => (
             <RowMenu items={[{ label: 'Plan delivery with AI', hidden: !PLANNER_PATHS.some(can) || ['cancelled', 'delivered'].includes(s.status), onClick: () => setPlanning(s.shipment_id) }, { label: 'Cancel shipment', danger: true, hidden: !can('/taas/shipment/cancel/v1') || ['cancelled', 'delivered'].includes(s.status), onClick: () => open(s) }]} />
           ) }
         ]} />
@@ -92,7 +92,7 @@ function ReturnRoutes() {
         <Kpi icon={Recycle} tone="green" label="Returns this month" value={returns.length} hint="Approved or refunded" />
       </Kpis>
       <Section title="Approved returns" subtitle="Only approved returns can be routed">
-        <DataTable rowKey={(r) => r.return_id} rows={returns} empty={data ? 'No approved returns to route yet.' : 'Loading...'} columns={[
+        <DataTable rowKey={(r) => r.return_id} rows={returns} empty={data ? 'No approved returns to route yet.' : can('/saas/return/request/read/v1') ? 'Loading...' : 'Your role is not allowed to see return requests. Ask your Root to give it access.'} columns={[
           { key: 'i', header: 'Return', render: (r) => <><div className="font-semibold text-google-gray-900">{r.item}</div><div className="text-xs text-google-gray-500">{r.return_id} • {r.customer}</div></> },
           { key: 'r', header: 'Route', render: (r) => options.length === 0 ? <span className="text-google-gray-500">-</span> : (
             <Dropdown ariaLabel={`Route for ${r.return_id}`} value={r.route || ''} placeholder="Choose a route" disabled={act.busy} options={options} onChange={(kind) => route(r, kind)}

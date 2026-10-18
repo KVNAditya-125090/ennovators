@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Section, Dropdown, Empty, ErrorNote, FIELD, Pill, money, useToast } from '../consumer/ui';
+import { AddressAutocomplete, mapsConfigured } from '../../maps';
 
 // Cart, checkout, orders and wishlist on one screen. Each part shows only when the seller switched its feature on.
 const P = {
@@ -89,6 +90,11 @@ export default function CartPage({ call, can }) {
                 <form onSubmit={place} className="mt-5 space-y-3 rounded-xl bg-google-gray-50 p-4">
                   <h4 className="text-base font-semibold text-google-gray-900">Checkout</h4>
                   <div className="grid gap-3 md:grid-cols-2">
+                    {mapsConfigured() && (
+                      <div className="md:col-span-2"><span className="mb-1 block text-sm font-semibold">Find your address</span>
+                        <AddressAutocomplete placeholder="Start typing your address" onSelect={(p) => setAddress((a) => ({ line1: p.parts.line1 || p.address, city: p.parts.city || a.city, postcode: p.parts.postcode || a.postcode, country: p.parts.country || a.country }))} />
+                      </div>
+                    )}
                     <label className="block md:col-span-2"><span className="mb-1 block text-sm font-semibold">Street address</span><input className={FIELD} value={address.line1} onChange={setA('line1')} /></label>
                     <label className="block"><span className="mb-1 block text-sm font-semibold">City</span><input className={FIELD} value={address.city} onChange={setA('city')} /></label>
                     <label className="block"><span className="mb-1 block text-sm font-semibold">Postcode</span><input className={FIELD} value={address.postcode} onChange={setA('postcode')} /></label>

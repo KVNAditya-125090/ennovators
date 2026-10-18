@@ -95,7 +95,7 @@ export default function BiddingModal({ product, onClose }) {
                 <Gavel className="h-8 w-8 text-google-teal" />
               </div>
               <h4 className="font-bold text-google-teal-dark">Broadcasting Auction Window...</h4>
-              <p className="text-xs text-google-gray-600">Collecting live bids from 3 matched sellers within floor & ceiling guardrails...</p>
+              <p className="text-xs text-google-gray-600">Collecting live bids from the matched sellers within floor & ceiling guardrails...</p>
               <div className="w-48 mx-auto bg-google-gray-200 h-2 rounded-full overflow-hidden">
                 <div className="bg-google-blue-dark h-full animate-pulse rounded-full w-3/4"></div>
               </div>
@@ -104,6 +104,13 @@ export default function BiddingModal({ product, onClose }) {
 
           {auctionState === 'COMPLETED' && biddingResult && (
             <div className="space-y-4 animate-fade-in">
+              {!biddingResult.winning_best_fit && (
+                <div className="p-4 bg-google-yellow-light border border-google-yellow rounded-xl text-sm text-google-gray-800">
+                  <div className="font-bold mb-1">No offer fits your budget</div>
+                  <div>{biddingResult.note || 'No seller made an offer within your budget.'} Try a higher budget.</div>
+                </div>
+              )}
+              {biddingResult.winning_best_fit && (
               <div className="p-4 bg-google-green-light/60 border border-google-green rounded-xl">
                 <div className="flex items-center space-x-2 text-google-green font-bold text-sm mb-2">
                   <Trophy className="h-5 w-5" />
@@ -120,6 +127,7 @@ export default function BiddingModal({ product, onClose }) {
                   </div>
                 </div>
               </div>
+              )}
 
               <div className="text-xs font-semibold text-google-gray-700">All Competing Seller Offers:</div>
               <div className="space-y-2">
@@ -127,9 +135,9 @@ export default function BiddingModal({ product, onClose }) {
                   <div key={idx} className="p-3 border border-google-gray-200 rounded-lg flex justify-between items-center text-xs">
                     <div>
                       <span className="font-semibold text-google-gray-900">{offer.seller_name}</span>
-                      <span className="text-google-gray-500 ml-2">({offer.condition})</span>
+                      <span className="text-google-gray-500 ml-2">({offer.condition}, {offer.delivery_days}-day delivery)</span>
                     </div>
-                    <div className="font-bold text-google-gray-800">${offer.offer_price}</div>
+                    <div className={`font-bold ${offer.within_budget === false ? 'text-google-gray-400 line-through' : 'text-google-gray-800'}`}>${offer.offer_price}</div>
                   </div>
                 ))}
               </div>
@@ -139,7 +147,7 @@ export default function BiddingModal({ product, onClose }) {
                 className="w-full google-btn-primary py-2.5 text-sm bg-google-blue-dark"
               >
                 <CheckCircle className="h-4 w-4" />
-                <span>Accept Winning Offer & Checkout</span>
+                <span>{biddingResult.winning_best_fit ? 'Accept Winning Offer & Checkout' : 'Close'}</span>
               </button>
             </div>
           )}

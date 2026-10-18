@@ -5,12 +5,18 @@ of them each consumer has opted into with the Owner (the "purchased" gate).
 """
 
 import csv
-import datetime
-from collections import deque
+import json
+import logging
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Set
+
+from sqlalchemy import text
+
+from cloud_run.ids import is_uuid
+from cloud_sql import db
 from cloud_sql.services.maas.endpoint_params import parameters_for
 
+log = logging.getLogger("lakshmi.registry")
 CATALOG_FILE = Path(__file__).with_name("endpoint_catalog_v1.csv")
 SERVICE_CODES = {"maas": "MaaS", "paas": "PaaS", "taas": "TaaS", "saas": "SaaS"}
 BASE_SERVICE = "MaaS"  # required by every consumer; opting into any other service includes it
@@ -83,11 +89,6 @@ SERVICE_ORDER = ("MaaS", "PaaS", "TaaS", "SaaS")
 def _service_paths(service: str) -> Set[str]:
     return {e["path"] for e in ENDPOINTS if e["service"] == service and not e["owner_side"]}
 
-# Preview entitlements, by endpoint path. Every consumer starts with the whole of the services it uses today.
-ENDPOINT_ENTITLEMENTS: Dict[str, Set[str]] = {
-    "5a9948a4-8637-5418-bb7d-544d070d9ac6": set().union(*(_service_paths(s) for s in SERVICE_ORDER)),  # the one consumer: every service and endpoint
-}
-
 # What the Owner can set for each endpoint, per consumer. The Owner changes any of the three.
 DEFAULT_RATE_LIMIT = 60       # calls per minute
 MAX_RATE_LIMIT = 10000
@@ -97,25 +98,26 @@ MAX_PRICE_PER_1K = 1000.0     # USD per 1,000 calls
 DEFAULT_PRICES = {"intelligence": (0.50, 2.00)}
 DEFAULT_PRICE = (0.10, 0.20)
 SETTING_KEYS = ("rate_limit_per_min", "monthly_fee_usd", "price_per_1k_calls_usd")
-SETTING_OVERRIDES: Dict[str, Dict[str, Dict[str, Any]]] = {}  # {tenant_id: {path: {setting: value}}}
 
 def default_settings(endpoint: Dict[str, Any]) -> Dict[str, Any]:
     fee, price = DEFAULT_PRICES.get(endpoint["category"], DEFAULT_PRICE)
     return {"rate_limit_per_min": DEFAULT_RATE_LIMIT, "monthly_fee_usd": fee, "price_per_1k_calls_usd": price}
 
-# Every call that reached the gate: who, what, when and how it ended. The newest 2,000, in memory.
-AUDIT_LOG: deque = deque(maxlen=2000)
+def _loads(value: Any) -> Dict[str, Any]:
+    return value if isinstance(value, dict) else json.loads(value)
 
 class EndpointRegistry:
+    """The catalog is read from the CSV. Which endpoints each consumer has, its settings and the audit log live in Cloud SQL."""
+
     def list_endpoints(self, service: Optional[str] = None) -> List[Dict[str, Any]]:
         return [dict(e) for e in ENDPOINTS if service is None or e["service"] == service]
 
     def enabled_paths(self, tenant_id: str) -> Set[str]:
-        return set(ENDPOINT_ENTITLEMENTS.get(tenant_id, set()))
+        return {r["path"] for r in db.rows("SELECT path FROM entitlements WHERE tenant_id = CAST(:t AS uuid)", t=tenant_id)}
 
     def service_summary(self, tenant_id: str) -> Dict[str, Dict[str, Any]]:
         """For each service: how many of the endpoints a consumer can buy it has on, and whether it counts as opted."""
-        on = ENDPOINT_ENTITLEMENTS.get(tenant_id, set())
+        on = self.enabled_paths(tenant_id)
         summary = {}
         for code in SERVICE_ORDER:
             paths = _service_paths(code)
@@ -125,15 +127,47 @@ class EndpointRegistry:
         return summary
 
     def record_audit(self, tenant_id: Optional[str], path: str, method: str, status: int, code: str, ms: Optional[float] = None) -> None:
-        AUDIT_LOG.appendleft({"at": datetime.datetime.utcnow().isoformat() + "Z", "tenant_id": tenant_id, "path": path,
-                              "method": method, "status": status, "code": code, "ms": ms})
+        """Writes one line of the audit log. A failure to write must never fail the call itself."""
+        try:
+            tenant = tenant_id if tenant_id and is_uuid(tenant_id) else None
+            db.run("""INSERT INTO audit_log (tenant_id, path, method, status, code, ms)
+                      VALUES (CAST(:t AS uuid), :path, :method, :status, :code, :ms)""",
+                   t=tenant, path=path, method=method, status=status, code=code, ms=ms)
+        except Exception:
+            log.exception("could not write the audit log")
 
     def list_audit(self, tenant_id: str, limit: int = 100) -> List[Dict[str, Any]]:
-        return [entry for entry in AUDIT_LOG if entry["tenant_id"] == tenant_id][:limit]
+        return db.rows("""SELECT to_char(at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS at, tenant_id::text AS tenant_id,
+                                 path, method, status, code, ms
+                          FROM audit_log WHERE tenant_id = CAST(:t AS uuid) ORDER BY id DESC LIMIT :n""", t=tenant_id, n=limit)
+
+    def recent_calls(self, per_path: int = 20, days: int = 7) -> Dict[str, List[Dict[str, Any]]]:
+        """The newest calls to each endpoint across every consumer, newest first: {path: [{status, ms, at}]}."""
+        found = db.rows("""SELECT path, status, ms, to_char(at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS at FROM (
+                             SELECT path, status, ms, at, row_number() OVER (PARTITION BY path ORDER BY id DESC) AS n
+                             FROM audit_log WHERE at > now() - make_interval(days => :days)) recent
+                           WHERE n <= :per ORDER BY path, n""", days=days, per=per_path)
+        out: Dict[str, List[Dict[str, Any]]] = {}
+        for row in found:
+            out.setdefault(row["path"], []).append(row)
+        return out
+
+    def call_counts(self, tenant_id: str, days: int = 30) -> Dict[str, int]:
+        """How many calls to each endpoint a consumer made in the last days that were let through, {path: calls}."""
+        return {r["path"]: r["n"] for r in db.rows("""SELECT path, count(*)::int AS n FROM audit_log
+                                                       WHERE tenant_id = CAST(:t AS uuid) AND status < 400 AND at > now() - make_interval(days => :d)
+                                                       GROUP BY path""", t=tenant_id, d=days)}
+
+    def calls_since(self, hours: int) -> Dict[str, int]:
+        """How the calls of the last few hours ended, ignoring 501 (not built yet): {total, served}."""
+        row = db.one("""SELECT count(*)::int AS total, count(*) FILTER (WHERE status < 500)::int AS served
+                        FROM audit_log WHERE at > now() - make_interval(hours => :h) AND status <> 501""", h=hours)
+        return {"total": row["total"], "served": row["served"]}
 
     def endpoint_settings(self, tenant_id: str) -> Dict[str, Dict[str, Any]]:
         """The settings in force for each endpoint: the defaults, with this consumer's changes on top."""
-        overrides = SETTING_OVERRIDES.get(tenant_id, {})
+        overrides = {r["path"]: _loads(r["settings"]) for r in
+                     db.rows("SELECT path, settings FROM endpoint_settings WHERE tenant_id = CAST(:t AS uuid)", t=tenant_id)}
         return {e["path"]: {**default_settings(e), **overrides.get(e["path"], {})} for e in ENDPOINTS}
 
     def update_settings(self, tenant_id: str, path: str, values: Dict[str, Any], reset: bool = False) -> str:
@@ -143,9 +177,8 @@ class EndpointRegistry:
             return "unknown"
         if endpoint["owner_side"]:
             return "owner_side"
-        current = SETTING_OVERRIDES.setdefault(tenant_id, {}).setdefault(path, {})
-        if reset:
-            current.clear()
+        row = db.one("SELECT settings FROM endpoint_settings WHERE tenant_id = CAST(:t AS uuid) AND path = :p", t=tenant_id, p=path)
+        current = {} if reset or row is None else _loads(row["settings"])
         defaults = default_settings(endpoint)
         for key, value in values.items():
             if key in SETTING_KEYS:
@@ -153,9 +186,23 @@ class EndpointRegistry:
                     current.pop(key, None)  # back at the default: nothing to remember
                 else:
                     current[key] = value
-        if not current:
-            SETTING_OVERRIDES[tenant_id].pop(path, None)
+        if current:
+            db.run("""INSERT INTO endpoint_settings (tenant_id, path, settings) VALUES (CAST(:t AS uuid), :p, CAST(:s AS jsonb))
+                      ON CONFLICT (tenant_id, path) DO UPDATE SET settings = EXCLUDED.settings""", t=tenant_id, p=path, s=json.dumps(current))
+        else:
+            db.run("DELETE FROM endpoint_settings WHERE tenant_id = CAST(:t AS uuid) AND path = :p", t=tenant_id, p=path)
         return "ok"
+
+    def _save(self, tenant_id: str, before: Set[str], after: Set[str]) -> None:
+        """Writes only what changed between two sets of opted-in paths."""
+        added, removed = sorted(after - before), sorted(before - after)
+        with db.tx() as conn:  # one statement each way, however many paths changed
+            if added:
+                conn.execute(text("INSERT INTO entitlements (tenant_id, path) SELECT CAST(:t AS uuid), unnest(CAST(:p AS text[])) ON CONFLICT DO NOTHING"),
+                             {"t": tenant_id, "p": added})
+            if removed:
+                conn.execute(text("DELETE FROM entitlements WHERE tenant_id = CAST(:t AS uuid) AND path = ANY(CAST(:p AS text[]))"),
+                             {"t": tenant_id, "p": removed})
 
     def set_endpoint_enabled(self, tenant_id: str, path: str, enabled: bool) -> str:
         """Opts one endpoint in or out. Returns "ok", "unknown", "owner_side" or "maas_required"."""
@@ -164,7 +211,8 @@ class EndpointRegistry:
             return "unknown"
         if endpoint["owner_side"]:
             return "owner_side"
-        on = ENDPOINT_ENTITLEMENTS.setdefault(tenant_id, set())
+        before = self.enabled_paths(tenant_id)
+        on = set(before)
         if enabled:
             on.add(path)
             if endpoint["service"] != BASE_SERVICE and not on & _service_paths(BASE_SERVICE):
@@ -175,13 +223,15 @@ class EndpointRegistry:
                     and any(on & _service_paths(s) for s in SERVICE_ORDER if s != BASE_SERVICE):
                 return "maas_required"
             on.discard(path)
+        self._save(tenant_id, before, on)
         return "ok"
 
     def set_service_enabled(self, tenant_id: str, service: str, enabled: bool) -> str:
         """Opts a whole service in or out (its base endpoints). Returns "ok", "unknown" or "maas_required"."""
         if service not in SERVICE_ORDER:
             return "unknown"
-        on = ENDPOINT_ENTITLEMENTS.setdefault(tenant_id, set())
+        before = self.enabled_paths(tenant_id)
+        on = set(before)
         if enabled:
             on |= _service_paths(service)
             on |= _service_paths(BASE_SERVICE)
@@ -189,6 +239,7 @@ class EndpointRegistry:
             if service == BASE_SERVICE and any(on & _service_paths(s) for s in SERVICE_ORDER if s != BASE_SERVICE):
                 return "maas_required"
             on -= _service_paths(service)
+        self._save(tenant_id, before, on)
         return "ok"
 
 endpoint_registry = EndpointRegistry()

@@ -1,25 +1,36 @@
 """
 BigQuery - MaaS (Management as a Service)
-Billing-export query behind the $120 3-month budget cap (also a Looker Studio source).
+The platform's own figures, for the Owner: spend against the $120 three-month budget, history over time, each consumer's
+usage and the telemetry of the Google Cloud services.
+
+Where each figure comes from:
+  hosting cost and budget    the table hosting_cost_daily in BigQuery (a billing export fills it in production)
+  calls, response time, errors, usage    the audit log in Cloud SQL, one line for every call the gate handled
+  queries and tickets        Firestore (the visitor queries and the tickets consumers raise with the Owner)
+  telemetry                  Cloud Logging, the real log lines of the project's Google Cloud services
 """
 
-from typing import Dict, Any, List
 import datetime
-import zlib
-import hashlib
-import random
+import logging
+import os
+import threading
+import time
+from typing import Any, Callable, Dict, List, Tuple
+
+from cloud_sql import db
+from cloud_sql.services.maas import cloud_sql_maas
+from cloud_sql.services.maas.endpoints import endpoint_registry
+from firestore import store
+
+log = logging.getLogger("lakshmi.bigquery")
+
+PROJECT = os.environ.get("GCP_PROJECT", "ennovators")
+DATASET = "lakshmi_analytics"
+BUDGET_USD = 120.00          # three months, 40% of the trial credit
+BUDGET_DAYS = 90
 
 # period -> (days covered, days per point)
 PERIODS = {"7d": (7, 1), "30d": (30, 1), "3m": (90, 7), "6m": (180, 7), "12m": (360, 30)}
-
-def _noise(seed: str, spread: float) -> float:
-    """Repeatable pseudo-random factor between 1 - spread and 1 + spread."""
-    unit = int(hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8], 16) / 0xFFFFFFFF
-    return 1 + (unit * 2 - 1) * spread
-
-# Queries from the home page in a typical month (preview): received, and answered by email or phone
-MONTH_QUERIES_RECEIVED = 12
-MONTH_QUERIES_ANSWERED = 9
 
 # Planned hosting cost by component (3-month plan, USD). Names are neutral on purpose.
 HOSTING_PLAN = [
@@ -33,231 +44,188 @@ HOSTING_PLAN = [
     ("Storage", 2.00),
 ]
 
-# Calls the gate has let through this month, counted live: {(tenant_id, path): calls}
-LIVE_CALLS: Dict[tuple, int] = {}
+# Storage and AI allowances of one consumer's workspace
+WORKSPACE_QUOTA = {"ai_requests_quota": 5000, "storage_quota_gb": 10}
 
-# Preview metering per endpoint: how busy each consumer is, and how busy each kind of endpoint is
-ENDPOINT_USAGE_SCALE = {"5a9948a4-8637-5418-bb7d-544d070d9ac6": 1.0}
-ENDPOINT_USAGE_WEIGHT = {"customer": 1.0, "system": 1.5, "consumer": 0.4, "intelligence": 0.5, "partner": 0.1}
+_client = None
+_lock = threading.Lock()
+_cache: Dict[str, Tuple[float, Any]] = {}
 
-# Preview usage per tenant workspace
-WORKSPACE_USAGE = {
-    "GreenCycle Refurbishers": {"ai_requests_used": 1240, "ai_requests_quota": 5000, "storage_used_gb": 3.4, "storage_quota_gb": 10},
-}
-DEFAULT_USAGE = {"ai_requests_used": 0, "ai_requests_quota": 1000, "storage_used_gb": 0.0, "storage_quota_gb": 2}
+def client():
+    global _client
+    if _client is None:
+        with _lock:
+            if _client is None:
+                from google.cloud import bigquery
+                _client = bigquery.Client(project=PROJECT)
+    return _client
 
-# The Google Cloud services behind the platform; a service that is responding slowly logs more warnings
-GCP_SERVICES = [
-    {"service_id": "cloud-run", "name": "Cloud Run", "status": "active"},
-    {"service_id": "cloud-sql", "name": "Cloud SQL", "status": "active"},
-    {"service_id": "bigquery", "name": "BigQuery", "status": "active"},
-    {"service_id": "firestore", "name": "Firestore", "status": "active"},
-    {"service_id": "vertex-ai", "name": "Vertex AI", "status": "slow"},
-    {"service_id": "cloud-storage", "name": "Cloud Storage", "status": "active"},
-    {"service_id": "firebase-hosting", "name": "Firebase Hosting", "status": "active"},
-]
+def cached(key: str, seconds: int, make: Callable[[], Any]) -> Any:
+    """Keeps an answer for a short while, so a busy dashboard does not run the same query again and again."""
+    now = time.time()
+    hit = _cache.get(key)
+    if hit and hit[0] > now:
+        return hit[1]
+    value = make()
+    _cache[key] = (now + seconds, value)
+    return value
 
-# The Google Cloud endpoints each service is called on: (method, address, what it does)
-PROJECT = "auracommerce-360"
-GCP_ENDPOINTS = {
-    "cloud-run": {
-        "serve": ("GET", "https://aura-api.a.run.app/api/v1/*", "Public address of the platform API"),
-        "admin": ("GET", f"run.googleapis.com/v2/projects/{PROJECT}/locations/us-central1/services/aura-api", "Reads and scales the API service"),
-    },
-    "cloud-sql": {
-        "connect": ("POST", f"sqladmin.googleapis.com/v1/projects/{PROJECT}/instances/aura-db:generateEphemeralCert", "Short-lived certificate used to connect to the database"),
-        "backup": ("POST", f"sqladmin.googleapis.com/v1/projects/{PROJECT}/instances/aura-db/backupRuns", "Takes a backup of the database"),
-    },
-    "bigquery": {
-        "query": ("POST", f"bigquery.googleapis.com/bigquery/v2/projects/{PROJECT}/queries", "Runs a SQL query"),
-        "load": ("POST", f"bigquery.googleapis.com/upload/bigquery/v2/projects/{PROJECT}/jobs", "Loads the billing export"),
-        "insert": ("POST", f"bigquery.googleapis.com/bigquery/v2/projects/{PROJECT}/datasets/metering/tables/api_usage/insertAll", "Writes usage metering rows"),
-    },
-    "firestore": {
-        "read": ("POST", f"firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents:batchGet", "Reads documents"),
-        "write": ("POST", f"firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents:commit", "Writes documents"),
-        "listen": ("POST", f"firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents:listen", "Streams live changes to the app"),
-        "index": ("POST", f"firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/collectionGroups/tickets/indexes", "Builds an index"),
-    },
-    "vertex-ai": {
-        "forecast": ("POST", f"us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/endpoints/forecast:predict", "Runs the demand forecast model"),
-        "grading": ("POST", f"us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/endpoints/grading:predict", "Grades a returned item from its photos"),
-        "assistant": ("POST", f"us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT}/locations/us-central1/publishers/google/models/gemini:generateContent", "Writes the assistant's replies"),
-    },
-    "cloud-storage": {
-        "upload": ("POST", "storage.googleapis.com/upload/storage/v1/b/aura-returns/o", "Uploads a return photo"),
-        "sign": ("POST", f"iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/aura-storage@{PROJECT}.iam.gserviceaccount.com:signBlob", "Signs a short-lived upload link"),
-        "lifecycle": ("PATCH", "storage.googleapis.com/storage/v1/b/aura-returns", "Updates the bucket's lifecycle rules"),
-    },
-    "firebase-hosting": {
-        "serve": ("GET", f"{PROJECT}.web.app/", "Serves the web app"),
-        "release": ("POST", f"firebasehosting.googleapis.com/v1beta1/sites/{PROJECT}/releases", "Publishes a new release"),
-        "rewrite": ("GET", f"{PROJECT}.web.app/api/**", "Passes API calls on to Cloud Run"),
-    },
-}
+def query(sql: str, **params: Any) -> List[Dict[str, Any]]:
+    from google.cloud import bigquery
+    config = bigquery.QueryJobConfig(query_parameters=[
+        bigquery.ScalarQueryParameter(k, "INT64" if isinstance(v, int) else "STRING", v) for k, v in params.items()])
+    return [dict(r) for r in client().query(sql, job_config=config).result()]
 
-# (level, message, the endpoint that was called)
-GCP_LOG_MESSAGES = {
-    "cloud-run": [
-        ("info", "Request completed with 200 in 112 ms", "serve"), ("info", "Request completed with 201 in 240 ms", "serve"),
-        ("info", "Instance started and ready for traffic", "admin"), ("info", "Scaled to 3 instances", "admin"),
-        ("warning", "Cold start took 1,850 ms", "serve"), ("warning", "CPU above 80% for 2 minutes", "admin"),
-        ("warning", "Request completed with 429, rate limit reached", "serve"), ("error", "Request failed with 500", "serve"),
-    ],
-    "cloud-sql": [
-        ("info", "Checkpoint completed", "connect"), ("info", "Automated backup finished", "backup"), ("info", "18 connections open", "connect"),
-        ("warning", "Slow query took 1,240 ms", "connect"), ("warning", "Connection pool above 80%", "connect"), ("error", "Connection reset by a client", "connect"),
-    ],
-    "bigquery": [
-        ("info", "Query finished, 1.2 GB scanned", "query"), ("info", "Billing export loaded", "load"), ("info", "Usage metering table refreshed", "insert"),
-        ("warning", "Query took 9.4 s", "query"), ("warning", "Daily scan above 80% of the plan", "query"), ("error", "Query failed: resources exceeded", "query"),
-    ],
-    "firestore": [
-        ("info", "Read 120 documents", "read"), ("info", "Wrote ticket update", "write"), ("info", "Index build complete", "index"),
-        ("warning", "Hot document, writes are slowing", "write"), ("warning", "Listener reconnected", "listen"), ("error", "Write rejected: contention", "write"),
-    ],
-    "vertex-ai": [
-        ("info", "Forecast prediction finished in 2.1 s", "forecast"), ("info", "Return grading finished in 2.8 s", "grading"), ("info", "Assistant reply generated", "assistant"),
-        ("warning", "Prediction took 3.4 s, over the target", "forecast"), ("warning", "Quota above 60% for the day", "assistant"), ("error", "Prediction failed: model timed out", "grading"),
-    ],
-    "cloud-storage": [
-        ("info", "Object uploaded, 2.1 MB", "upload"), ("info", "Signed upload link issued", "sign"), ("info", "Lifecycle rule moved 40 objects", "lifecycle"),
-        ("warning", "Upload retried after a timeout", "upload"), ("warning", "Bucket size above 80% of the plan", "lifecycle"), ("error", "Upload rejected: file too large", "upload"),
-    ],
-    "firebase-hosting": [
-        ("info", "Served index.html from cache", "serve"), ("info", "New release is live", "release"), ("info", "Asset served in 38 ms", "serve"),
-        ("warning", "Request for a missing file", "serve"), ("warning", "Bandwidth above 80% of the daily plan", "rewrite"), ("error", "Rewrite to the API failed with 502", "rewrite"),
-    ],
-}
+def hosting_cost_by_day(days: int) -> Dict[str, float]:
+    """Hosting cost in USD for each of the last days: {date: usd}. Empty when nothing has been loaded."""
+    def make():
+        try:
+            rows = query(f"SELECT CAST(day AS STRING) AS day, SUM(usd) AS usd FROM `{PROJECT}.{DATASET}.hosting_cost_daily` "
+                         "WHERE day >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY) GROUP BY day", days=days)
+            return {r["day"]: float(r["usd"]) for r in rows}
+        except Exception:
+            log.exception("could not read the hosting cost")
+            return {}
+    return cached(f"hosting:{days}", 120, make)
 
 class BigQueryMaaS:
     def __init__(self):
-        self.provider_status = "Mock Driver (Offline / Keyless Mode)"
+        self.provider_status = "BigQuery, Cloud SQL and Cloud Logging"
 
+    # ---- budget ----
     def get_budget_status(self) -> Dict[str, Any]:
-        limit, spent = 120.00, 18.45
+        spent = round(sum(hosting_cost_by_day(BUDGET_DAYS).values()), 2)
+        used = spent / BUDGET_USD * 100
+        def state(threshold: int) -> str:
+            return "REACHED" if used >= threshold else "OK"
         return {
-            "budget_limit_usd": limit,
+            "budget_limit_usd": BUDGET_USD,
             "spent_to_date_usd": spent,
-            "remaining_usd": round(limit - spent, 2),
-            "percentage_used": round(spent / limit * 100, 2),
+            "remaining_usd": round(BUDGET_USD - spent, 2),
+            "percentage_used": round(used, 2),
             "alerts": [
-                {"threshold": "50%", "status": "OK"},
-                {"threshold": "75%", "status": "OK"},
-                {"threshold": "90%", "status": "OK"},
-                {"threshold": "100% (Kill Switch)", "status": "ARMED"}
+                {"threshold": "50%", "status": state(50)},
+                {"threshold": "75%", "status": state(75)},
+                {"threshold": "90%", "status": state(90)},
+                {"threshold": "100% (budget cap)", "status": state(100)},
             ]
         }
-
-    def get_platform_history(self, period: str, month_revenue: float, month_hosting_cost: float, month_requests: int, consumer_count: int = 3) -> List[Dict[str, Any]]:
-        """Revenue, hosting cost, requests, response time, uptime, errors and consumers over time.
-
-        Preview data: a repeatable series shaped so the most recent 30 days add up to the
-        current month's figures, with earlier days lower as the platform grew.
-        """
-        days, step = PERIODS[period]
-        span = max(days, 30)
-        today = datetime.date.today()
-        records = []
-        for ago in range(span - 1, -1, -1):
-            day = today - datetime.timedelta(days=ago)
-            growth = max(0.15, 1 - ago / 450)
-            weekday = 0.85 if day.weekday() >= 5 else 1.0
-            records.append({
-                "date": day,
-                "ago": ago,
-                "revenue": growth * weekday * _noise(f"rev{day}", 0.12),
-                "hosting_cost": (0.9 + 0.1 * growth) * _noise(f"cost{day}", 0.06),
-                "requests": growth * weekday * _noise(f"req{day}", 0.15),
-                "p95_seconds": 1.4 * _noise(f"p95{day}", 0.25),
-                "uptime_pct": 100 - abs(_noise(f"up{day}", 1.0) - 1) * 0.2,
-                "errors_pct": 0.15 * _noise(f"err{day}", 0.8),
-                "queries_received": growth * weekday * _noise(f"tko{day}", 0.5),
-                "queries_answered": growth * weekday * _noise(f"tkr{day}", 0.5),
-                "first_response_hours": 2.2 * _noise(f"frh{day}", 0.4),
-                "resolution_hours": 20.0 * _noise(f"rsh{day}", 0.35),
-                "consumers": max(1, consumer_count - (1 if ago > 120 else 0) - (1 if ago > 240 else 0)),
-            })
-
-        def scale(key: str, target: float) -> float:
-            recent = sum(r[key] for r in records if r["ago"] < 30)
-            return target / recent if recent else 0.0
-
-        k_rev = scale("revenue", month_revenue)
-        k_cost = scale("hosting_cost", month_hosting_cost)
-        k_req = scale("requests", month_requests)
-        k_open = scale("queries_received", MONTH_QUERIES_RECEIVED)
-        k_resolved = scale("queries_answered", MONTH_QUERIES_ANSWERED)
-
-        window = records[-days:]
-        groups = [window[max(0, end - step):end] for end in range(len(window), 0, -step)][::-1]
-        points = []
-        cum = {"open": 0.0, "resolved": 0.0}  # round running totals so small daily counts still add up exactly
-        done = {"open": 0, "resolved": 0}
-        for group in groups:
-            cum["open"] += sum(r["queries_received"] for r in group) * k_open
-            cum["resolved"] += sum(r["queries_answered"] for r in group) * k_resolved
-            opened = int(round(cum["open"])) - done["open"]
-            resolved = int(round(cum["resolved"])) - done["resolved"]
-            done["open"] += opened
-            done["resolved"] += resolved
-            points.append({
-                "date": group[-1]["date"].isoformat(),
-                "revenue": round(sum(r["revenue"] for r in group) * k_rev, 2),
-                "hosting_cost": round(sum(r["hosting_cost"] for r in group) * k_cost, 2),
-                "requests": int(round(sum(r["requests"] for r in group) * k_req)),
-                "p95_seconds": round(sum(r["p95_seconds"] for r in group) / len(group), 2),
-                "uptime_pct": round(sum(r["uptime_pct"] for r in group) / len(group), 2),
-                "errors_pct": round(sum(r["errors_pct"] for r in group) / len(group), 3),
-                "queries_received": opened,
-                "queries_answered": resolved,
-                "first_response_hours": round(sum(r["first_response_hours"] for r in group) / len(group), 1),
-                "resolution_hours": round(sum(r["resolution_hours"] for r in group) / len(group), 1),
-                "consumers": group[-1]["consumers"],
-            })
-        return points
 
     def get_hosting_plan(self) -> List[Dict[str, Any]]:
         total = sum(amount for _, amount in HOSTING_PLAN)
         return [{"name": name, "planned_usd": amount, "share": amount / total} for name, amount in HOSTING_PLAN]
 
-    def get_gcp_logs(self, limit: int = 60) -> List[Dict[str, Any]]:
-        """The latest log lines of all the Google Cloud services together, newest first."""
-        now = datetime.datetime.utcnow().replace(second=0, microsecond=0)
-        lines = []
-        for service in GCP_SERVICES:
-            rng = random.Random(service["service_id"])  # the same sample every time
-            slow = service["status"] != "active"
-            weights = {"info": 80, "warning": 35 if slow else 15, "error": 6 if slow else 2}
-            messages = GCP_LOG_MESSAGES[service["service_id"]]
-            minutes = 0
-            for _ in range(40):
-                minutes += rng.randint(1, 9)
-                level = rng.choices(list(weights), weights=list(weights.values()))[0]
-                _, message, endpoint = rng.choice([m for m in messages if m[0] == level])
-                method, address, description = GCP_ENDPOINTS[service["service_id"]][endpoint]
-                lines.append({
-                    "timestamp": (now - datetime.timedelta(minutes=minutes)).isoformat() + "Z",
-                    "service_id": service["service_id"], "service": service["name"], "level": level,
-                    "method": method, "endpoint": address, "description": description, "message": message,
-                })
-        return sorted(lines, key=lambda line: line["timestamp"], reverse=True)[:limit]
+    # ---- history ----
+    def get_platform_history(self, period: str, month_revenue: float, month_hosting_cost: float, month_requests: int, consumer_count: int = 0) -> List[Dict[str, Any]]:
+        """Revenue, hosting cost, requests, response time, uptime, errors, queries and consumers over time.
 
+        Calls, response time and errors are counted from the audit log. Revenue is the month's billing spread over the
+        days by their share of the calls. Hosting cost is read from BigQuery."""
+        days, step = PERIODS[period]
+        today = datetime.date.today()
+        daily = {r["d"]: r for r in db.rows("""SELECT (at AT TIME ZONE 'UTC')::date::text AS d, count(*)::int AS n,
+                       count(*) FILTER (WHERE status >= 500 AND status <> 501)::int AS errors,
+                       coalesce(percentile_cont(0.95) WITHIN GROUP (ORDER BY ms), 0)::float AS p95
+                FROM audit_log WHERE at > now() - make_interval(days => :d) AND status <> 501 GROUP BY 1""", d=days + 1)}
+        thirty = db.one("SELECT count(*)::int AS n FROM audit_log WHERE at > now() - interval '30 days' AND status < 400")["n"]
+        per_request = month_revenue / thirty if thirty else 0.0
+        cost = hosting_cost_by_day(days + 1)
+        received, answered, first, resolution = {}, {}, {}, {}
+        for q in store.rows("queries", "query_id", scope="global", newest_first=True):
+            received[q["received"]] = received.get(q["received"], 0) + 1
+            if q["status"] != "New":
+                answered[q["received"]] = answered.get(q["received"], 0) + 1
+            if q.get("first_response_hours") is not None:
+                first.setdefault(q["received"], []).append(q["first_response_hours"])
+        for t in store.rows("platform_tickets", "ticket_id", scope="global", newest_first=True):
+            if t.get("resolution_hours") is not None:
+                resolution.setdefault(t["opened"], []).append(t["resolution_hours"])
+
+        points = []
+        dates = [(today - datetime.timedelta(days=ago)).isoformat() for ago in range(days - 1, -1, -1)]
+        for start in range(0, len(dates), step):
+            group = dates[start:start + step]
+            rows = [daily[d] for d in group if d in daily]
+            n = sum(r["n"] for r in rows)
+            errors = sum(r["errors"] for r in rows)
+            p95 = (sum(r["p95"] * r["n"] for r in rows) / n / 1000) if n else 0.0
+            f = [h for d in group for h in first.get(d, [])]
+            res = [h for d in group for h in resolution.get(d, [])]
+            points.append({
+                "date": group[-1], "revenue": round(sum(daily.get(d, {"n": 0})["n"] for d in group) * per_request, 2),
+                "hosting_cost": round(sum(cost.get(d, 0.0) for d in group), 2), "requests": n, "p95_seconds": round(p95, 2),
+                "uptime_pct": round(100 - (errors / n * 100), 2) if n else 100.0, "errors_pct": round(errors / n * 100, 3) if n else 0.0,
+                "queries_received": sum(received.get(d, 0) for d in group), "queries_answered": sum(answered.get(d, 0) for d in group),
+                "first_response_hours": round(sum(f) / len(f), 1) if f else 0.0, "resolution_hours": round(sum(res) / len(res), 1) if res else 0.0,
+                "consumers": consumer_count})
+        return points
+
+    # ---- telemetry ----
+    def get_gcp_logs(self, limit: int = 60) -> List[Dict[str, Any]]:
+        """The latest log lines of the project's Google Cloud services together, newest first (from Cloud Logging)."""
+        def make():
+            try:
+                return _read_logs(limit)
+            except Exception:
+                log.exception("could not read Cloud Logging")
+                return []
+        return cached(f"logs:{limit}", 30, make)
+
+    # ---- usage ----
     def get_endpoint_usage(self, tenant_id: str, categories: Dict[str, str]) -> Dict[str, int]:
-        """Calls this month to each endpoint ({path: category}) for one consumer: preview sample data, plus the calls the gate has counted."""
-        scale = ENDPOINT_USAGE_SCALE.get(tenant_id, 0.1)
-        usage = {}
-        for path, category in categories.items():
-            r = (zlib.crc32(f"{tenant_id}:{path}".encode()) % 1000) / 1000
-            usage[path] = int(20000 * scale * ENDPOINT_USAGE_WEIGHT.get(category, 0.4) * r * r) + LIVE_CALLS.get((tenant_id, path), 0)
-        return usage
+        """Calls in the last 30 days to each endpoint ({path: category}) for one consumer, counted from the audit log."""
+        counts = endpoint_registry.call_counts(tenant_id, 30)
+        return {path: counts.get(path, 0) for path in categories}
 
     def record_call(self, tenant_id: str, path: str) -> None:
-        """Counts one call the gate let through. It shows in the usage and the cost at once."""
-        LIVE_CALLS[(tenant_id, path)] = LIVE_CALLS.get((tenant_id, path), 0) + 1
+        """Kept for the gate: the audit log is the record of every call, so there is nothing more to count here."""
 
     def get_workspace_usage(self, tenant_name: str) -> Dict[str, Any]:
-        """Usage against the per-workspace AI and storage quotas."""
-        return dict(WORKSPACE_USAGE.get(tenant_name, DEFAULT_USAGE))
+        """Use of the workspace's AI and storage allowances."""
+        tenant = cloud_sql_maas.get_tenant_by_name(tenant_name)
+        used_ai, used_gb = 0, 0.0
+        if tenant is not None:
+            ai_paths = {e["path"] for e in endpoint_registry.list_endpoints() if e["ai"]}
+            used_ai = sum(n for p, n in endpoint_registry.call_counts(tenant["tenant_id"], 30).items() if p in ai_paths)
+            used_gb = _storage_gb(tenant["tenant_id"])
+        return {"ai_requests_used": used_ai, "storage_used_gb": round(used_gb, 3), **WORKSPACE_QUOTA}
+
+def _storage_gb(tenant_id: str) -> float:
+    def make():
+        try:
+            from cloud_storage import media_store
+            return sum(b.size or 0 for b in media_store.bucket().list_blobs(prefix=tenant_id + "/")) / 1e9
+        except Exception:
+            log.exception("could not measure storage")
+            return 0.0
+    return cached(f"storage:{tenant_id}", 300, make)
+
+# The services in the project and how their log entries are recognised
+SERVICE_BY_RESOURCE = {"cloud_run_revision": ("cloud-run", "Cloud Run"), "cloudsql_database": ("cloud-sql", "Cloud SQL"),
+                       "bigquery_resource": ("bigquery", "BigQuery"), "gcs_bucket": ("cloud-storage", "Cloud Storage"),
+                       "aiplatform.googleapis.com/Endpoint": ("vertex-ai", "Vertex AI"), "build": ("cloud-build", "Cloud Build")}
+LEVEL = {"DEBUG": "info", "INFO": "info", "NOTICE": "info", "DEFAULT": "info", "WARNING": "warning", "ERROR": "error", "CRITICAL": "error", "ALERT": "error", "EMERGENCY": "error"}
+
+def _read_logs(limit: int) -> List[Dict[str, Any]]:
+    from google.cloud import logging as cloud_logging
+    since = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    kinds = " OR ".join(f'resource.type="{k}"' for k in SERVICE_BY_RESOURCE)
+    entries = cloud_logging.Client(project=PROJECT).list_entries(filter_=f'timestamp>="{since}" AND ({kinds})', order_by=cloud_logging.DESCENDING, page_size=limit, max_results=limit)
+    lines = []
+    for e in entries:
+        service_id, service = SERVICE_BY_RESOURCE.get(e.resource.type, ("other", e.resource.type))
+        request = getattr(e, "http_request", None) or {}
+        payload = e.payload
+        if isinstance(payload, dict):
+            message = payload.get("message") or payload.get("textPayload") or str(payload)[:200]
+        else:
+            message = str(payload or "")
+        if request and not message:
+            message = f"{request.get('requestMethod', '')} {request.get('status', '')}"
+        lines.append({"timestamp": e.timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "service_id": service_id, "service": service,
+                      "level": LEVEL.get(str(e.severity or "DEFAULT").upper(), "info"), "method": request.get("requestMethod", ""),
+                      "endpoint": (request.get("requestUrl") or "").replace("https://", "")[:120], "description": f"{service} log entry",
+                      "message": message[:240]})
+    return lines
 
 bigquery_maas = BigQueryMaaS()

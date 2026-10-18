@@ -2,7 +2,8 @@
 Cloud Run - Customer portal handlers
 What a Customer (shopper) call does once it has passed the gate, by catalog path. A shopper has a separate account
 with each consumer they shop with, so every shopper's data (profile, cart, wishlist, orders, tickets, reservations,
-reviews, green credits) is kept per (consumer, shopper) in this process's memory, like the rest of the preview.
+reviews, green credits) is kept in Firestore per (consumer, shopper). A shopper's order, ticket and return also become the
+consumer's own records, so its staff see and work on them, and what staff do shows back to the shopper.
 
 A handler takes the tenant (the consumer whose store this is) and the call's parameters, and returns the response
 body. Reads that have real sample data behind them (catalog, passport, environmental scores, stores, tracking)
@@ -22,14 +23,14 @@ from firestore.users.consumer import operations as ops
 from vertex_ai.users import customer as vertex_ai
 from cloud_storage.users import customer as cloud_storage
 from cloud_run.ids import new_id, passport_id, seed_id
+from cloud_run import assistant_facts, bid_flow, bidding, mapsupport, rules
+from cloud_run.photos import decode_photo, take_turn
+from firestore import store
+from firestore.services.taas import firestore_taas
 
-# ---- Per-shopper state, kept per (consumer tenant, shopper email) ----
+# ---- Per-shopper state, kept in Firestore per (consumer, shopper email) ----
 _ids = itertools.count(1)
-STATE: Dict[tuple, Dict[str, Any]] = {}      # (tenant_id, email) -> this shopper's data
-RECORDS: Dict[tuple, List[Dict[str, Any]]] = {}  # (tenant_id, email, feature) -> stand-in records, newest first
 
-# Demo shopper, so the portal has history on first sign-in (customer@gmail.com, Individual)
-DEMO_EMAIL = "customer@gmail.com"
 
 
 def _now() -> str:
@@ -38,21 +39,19 @@ def _now() -> str:
 
 def _who() -> str:
     """The shopper making this call (their email). The gate sets it for Customer-side endpoints."""
-    email = ops.CUSTOMER.get() or DEMO_EMAIL
+    email = ops.CUSTOMER.get() or ""
     return email.strip().lower()
 
 
 def _state(tenant) -> Dict[str, Any]:
-    key = (tenant["tenant_id"], _who())
-    if key not in STATE:
-        STATE[key] = {
-            "profile": {"email": key[1], "account_type": "individual", "full_name": "", "phone": "",
-                        "preferred_language": "en", "address": None, "verified": False,
-                        "consumer": tenant["name"], "joined": _now()},
-            "cart": [], "wishlist": [], "orders": [], "tickets": [], "reservations": [],
-            "reviews": [], "green_credits": 120, "bids": [],
-        }
-    return STATE[key]
+    email = _who()
+    return store.kdoc("shoppers", email, lambda: {
+        "profile": {"email": email, "account_type": "individual", "full_name": "", "phone": "",
+                    "preferred_language": "en", "address": None, "verified": False,
+                    "consumer": tenant["name"], "joined": _now()},
+        "cart": [], "wishlist": [], "orders": [], "tickets": [], "reservations": [],
+        "reviews": [], "green_credits": 0, "bids": [],
+    }, tenant_id=tenant["tenant_id"])
 
 
 def _product(product_id: str) -> Dict[str, Any]:
@@ -73,15 +72,15 @@ def _standin(endpoint: Dict[str, Any]):
     is_read = endpoint["method"] == "GET"
 
     def handler(tenant, params):
-        key = (tenant["tenant_id"], _who(), feature)
+        records = store.kdoc("shopper_records", f"{_who()}__{feature}", lambda: {"items": []}, tenant_id=tenant["tenant_id"])["items"]
         if is_read:
-            items = [r for r in RECORDS.get(key, [])
+            items = [r for r in records
                      if all(str(r["params"].get(k)) == str(v) for k, v in params.items() if v not in (None, "") and k in r["params"])]
             return {"preview": True, "items": items,
                     "note": "Preview: shows what you recorded for this feature in this session. Real data arrives once the backend is connected."}
         record = {"id": _oid("pv"), "action": endpoint["sub_category"].replace("/", " "), "endpoint": endpoint["path"],
                   "params": params, "at": _now(), "by": _who(), "status": "recorded"}
-        RECORDS.setdefault(key, []).insert(0, record)
+        records.insert(0, record)
         return {"preview": True, "record": record,
                 "message": f"{endpoint['description']}: recorded in the preview. It takes effect once the backend is connected."}
 
@@ -162,6 +161,7 @@ def verify_mail(tenant, params):
 
 @real("/maas/locale/language/customer-select/v1")
 def select_language(tenant, params):
+    rules.customer_language_ok(tenant["tenant_id"], params["language"])
     _state(tenant)["profile"]["preferred_language"] = params["language"]
     return {"status": "ok", "preferred_language": params["language"]}
 
@@ -173,29 +173,29 @@ def export_data(tenant, params):
             "message": "Your data, ready to download."}
 
 
-_STORES = [
-    {"store_id": "b44f7827-a2af-58f3-95c1-93a5f83550c1", "name": "Lakshmi Pune", "address": "27 Baner Road, Pune 411045", "city": "Pune", "country": "India", "latitude": 18.559, "longitude": 73.780, "opening_hours": "Mon-Sat 10:00-19:00"},
-    {"store_id": "dd52a7c6-9a95-5fea-8b76-6e443d84a6f6", "name": "Lakshmi Mumbai", "address": "14 Linking Road, Bandra, Mumbai 400050", "city": "Mumbai", "country": "India", "latitude": 19.054, "longitude": 72.840, "opening_hours": "Mon-Sun 11:00-20:00"},
-    {"store_id": "869a4bcf-360c-5423-8523-a84863e21d81", "name": "Lakshmi Hyderabad", "address": "8 Jubilee Hills, Hyderabad 500033", "city": "Hyderabad", "country": "India", "latitude": 17.431, "longitude": 78.409, "opening_hours": "Mon-Sat 10:30-19:30"},
-]
+def _stores() -> List[Dict[str, Any]]:
+    """The consumer's stores that are open to shoppers."""
+    return [s for s in store.rows("stores", "store_id") if s.get("active", True)]
 
 
 @real("/maas/location/store/list/v1")
 def list_stores(tenant, params):
-    return {"stores": _STORES}
+    return {"stores": _stores()}
 
 
 @real("/maas/location/store/nearby/find/v1")
 def nearby_store(tenant, params):
-    lat, lng = float(params["latitude"]), float(params["longitude"])
-    nearest = min(_STORES, key=lambda s: (s["latitude"] - lat) ** 2 + (s["longitude"] - lng) ** 2)
-    km = round((((nearest["latitude"] - lat) ** 2 + (nearest["longitude"] - lng) ** 2) ** 0.5) * 111, 1)
-    return {"nearest": {**nearest, "distance_km": km}, "stores": _STORES}
+    stores = _stores()
+    if not stores:
+        return {"nearest": None, "stores": []}
+    ranked = mapsupport.stores_by_distance(float(params["latitude"]), float(params["longitude"]), stores)
+    return {"nearest": ranked[0] if ranked else None, "stores": ranked}
 
 
 @real("/maas/assistant/account-help/ask/v1")
 def account_help(tenant, params):
-    return {"preview": True, **vertex_ai.chat(params["question"], {"topic": "account and login"})}
+    context = {"topic": "account and login", "language": params.get("language") or "en", "facts": assistant_facts.build(tenant, "account and login")}
+    return {**vertex_ai.chat(params["question"], context)}
 
 
 # ---------- PaaS: catalog ----------
@@ -209,8 +209,10 @@ def _offer(product: Dict[str, Any]) -> Dict[str, Any]:
 @real("/paas/catalog/product/view/v1")
 def view_product(tenant, params):
     p = _product(params["product_id"])
-    return {"product": {**_offer(p), "rating": 4.8, "reviews": len(_state(tenant)["reviews"]),
-                        "passport_id": passport_id(p["id"]), "seller": tenant["name"]}}
+    found = [r for r in store.rows("reviews", "review_id", newest_first=True) if r["product_id"] == p["id"]]
+    return {"product": {**_offer(p), "rating": round(sum(r["rating"] for r in found) / len(found), 1) if found else None, "reviews": len(found),
+                        "passport_id": passport_id(p["id"]), "seller": tenant["name"],
+                        "translation": (p.get("translations") or {}).get(_state(tenant)["profile"].get("preferred_language"))}}
 
 
 @real("/paas/catalog/search/text/v1")
@@ -223,18 +225,17 @@ def search_text(tenant, params):
 @real("/paas/store-stock/read/v1")
 def store_stock(tenant, params):
     p = _product(params["product_id"])
-    base = p.get("stock", 0)
+    held = p.get("stock_by_store") or {}
     return {"product_id": p["id"], "name": p["name"],
-            "by_store": [{"store_id": s["store_id"], "store": s["name"], "in_stock": max(0, base // (i + 1))} for i, s in enumerate(_STORES)]}
+            "by_store": [{"store_id": s["store_id"], "store": s["name"], "in_stock": int(held.get(s["store_id"], 0))} for s in _stores()]}
 
 
 @real("/paas/passport/read/v1")
 def read_passport(tenant, params):
     pid = params.get("passport_id", "")
-    return {"passport": {"passport_id": pid, "origin": "Assembled in Pune, India from 62% recycled aluminium",
-                         "owners": 2, "repairs": [{"at": "2026-05-12", "note": "Battery replaced, certified"}],
-                         "grades": [{"at": "2026-05-12", "grade": "A", "note": "Refurbished to as-new"}],
-                         "carbon_saved_kg": 4.2, "recyclable_pct": 86}}
+    found = next((x for x in store.rows("passports", "passport_id") if x["passport_id"] == pid), None)
+    return {"passport": found or {"passport_id": pid, "origin": "", "owners": 0, "repairs": [], "grades": [],
+                                  "carbon_saved_kg": 0, "recyclable_pct": 0}}
 
 
 @real("/paas/passport/scan/v1")
@@ -247,16 +248,25 @@ def recommend_products(tenant, params):
     st = _state(tenant)
     products = firestore_paas.list_products()
     by_id = {p["id"]: p for p in products}
-    seen = {l["product_id"] for l in st["cart"]} | {w["product_id"] for w in st["wishlist"]} \
-        | {l["product_id"] for o in st["orders"] for l in o["lines"]} | {b["product_id"] for b in st["bids"]}
+    tid = tenant["tenant_id"]
+    use = set(rules.personalization(tid)["enabled_signals"])  # the signals the consumer lets the recommendations learn from
+    fresh = lambda stamp: rules.within_retention(tid, stamp)
+    cart_ids, wish_ids = {l["product_id"] for l in st["cart"]}, {w["product_id"] for w in st["wishlist"]}
+    order_ids = {l["product_id"] for o in st["orders"] for l in o["lines"]}
+    bid_ids = {b["product_id"] for b in st["bids"]}
+    seen = cart_ids | wish_ids | order_ids | bid_ids  # never offer what the shopper already has
+    learned = ((cart_ids if "cart" in use else set()) | (wish_ids if "wishlist" in use else set())
+               | ({l["product_id"] for o in st["orders"] if fresh(o.get("placed_at")) for l in o["lines"]} if "orders" in use else set())
+               | ({b["product_id"] for b in st["bids"] if fresh(b.get("at"))} if "bids" in use else set()))
     if params.get("product_id"):
         seen.add(params["product_id"])
-    liked = {by_id[i].get("category") for i in seen if i in by_id}
+        learned.add(params["product_id"])
+    liked = {by_id[i].get("category") for i in learned if i in by_id}
     # what the shopper has not met yet, in the categories they have shown interest in first, then the greenest
     pool = [p for p in products if p["id"] not in seen]
     pool.sort(key=lambda p: (p.get("category") not in liked, -p.get("carbon_footprint_kg", 0)))
     items = [_offer(p) for p in pool[: int(params.get("limit") or 3)]]
-    reason = "Picked from what you have in your cart, wishlist, orders and bids." if seen else "Popular with shoppers, greenest first. It sharpens as you browse and buy."
+    reason = "Picked from what you have in your cart, wishlist, orders and bids." if learned else "Popular with shoppers, greenest first. It sharpens as you browse and buy."
     return {"recommendations": items, "reason": reason}
 
 
@@ -274,24 +284,27 @@ def frequently_bought(tenant, params):
 
 @real("/paas/explain/decision/read/v1")
 def explain_decision(tenant, params):
-    return {"decision_id": params.get("decision_id"), "summary": "This price reflects condition grade A, local stock and a greener delivery option.",
-            "factors": [{"factor": "Condition grade", "weight": "high", "detail": "Grade A, refurbished to as-new."},
-                        {"factor": "Local stock", "weight": "medium", "detail": "In stock at a store near you."},
-                        {"factor": "Carbon saved", "weight": "medium", "detail": "4.2 kg CO2e saved versus new."}]}
+    return {"decision_id": params.get("decision_id"), "summary": "", "factors": []}
 
 
 @real("/paas/pricing/personalized/offer/read/v1")
 def personalized_offer(tenant, params):
     p = _product(params["product_id"])
-    price = round(p["retail_price"] * 0.9, 2)
-    return {"product_id": p["id"], "list_price": p["retail_price"], "your_price": price, "discount_pct": 10,
-            "reason": "A returning-shopper offer from this seller.", "preview": True}
+    today = datetime.date.today().isoformat()
+    live = [o for o in _state(tenant).get("offers", []) if o.get("discount_pct") and (not o.get("expires") or str(o["expires"])[:10] >= today)]
+    best = max(live, key=lambda o: o["discount_pct"], default=None)
+    listed = float(p["retail_price"])
+    if best is None:
+        return {"product_id": p["id"], "list_price": listed, "your_price": listed, "discount_pct": 0, "reason": "No offer for you right now."}
+    price = max(round(listed * (1 - best["discount_pct"] / 100), 2), float(p["current_bidding_floor"]))  # never below the seller's floor
+    return {"product_id": p["id"], "list_price": listed, "your_price": price, "discount_pct": round((listed - price) / listed * 100, 1),
+            "reason": f"{best['title']} (sent to your customer group).", "offer_id": best["offer_id"]}
 
 
 @real("/paas/return-risk/checkout/guidance/read/v1")
 def return_risk(tenant, params):
-    return {"product_id": params["product_id"], "return_risk": "low",
-            "guidance": "This size runs true. Based on similar shoppers, a return is unlikely.", "preview": True}
+    return {"product_id": params["product_id"], "return_risk": None,
+            "guidance": "", "preview": True}
 
 
 @real("/paas/future-value/quote/read/v1")
@@ -309,7 +322,7 @@ def _env(product: Dict[str, Any]) -> Dict[str, Any]:
     saved = product.get("carbon_footprint_kg", 0)
     score = min(99, 55 + int(saved * 10))
     return {"environmental_score": score, "carbon_saved_kg": saved,
-            "recyclable_pct": 86, "grade": "A" if score >= 90 else "B" if score >= 70 else "C"}
+            "recyclable_pct": 0, "grade": "A" if score >= 90 else "B" if score >= 70 else "C"}
 
 
 @real("/paas/environment/score/read/v1")
@@ -320,33 +333,33 @@ def env_score(tenant, params):
 
 @real("/paas/environment/offer-score/read/v1")
 def env_offer_score(tenant, params):
-    return {"offer_id": params["offer_id"], "carbon_footprint_kg": 3.1, "environmental_score": 84, "grade": "A"}
+    return {"offer_id": params["offer_id"], "carbon_footprint_kg": None, "environmental_score": None, "grade": None}
 
 
 @real("/paas/environment/recycling-factor/read/v1")
 def env_recycling(tenant, params):
     p = _product(params["product_id"])
-    return {"product_id": p["id"], "recyclable_pct": 86, "notes": "Aluminium casing and battery are recoverable at certified recyclers."}
+    return {"product_id": p["id"], "recyclable_pct": 0, "notes": ""}
 
 
 @real("/paas/parts/listing/read/v1")
 def parts_listing(tenant, params):
-    return {"parts": [{"part_id": "b27a6a6a-bb8e-5600-9d6c-995906c2ce47", "name": "Replacement battery module", "price": 24.0, "condition": "new"},
-                      {"part_id": "f26963ab-cfad-5b33-bc4e-8dce5e5ed8bc", "name": "Eco strap (recycled)", "price": 12.5, "condition": "new"}]}
+    return {"parts": store.rows("parts", "part_id")}
 
 
 @real("/paas/feedback/review/read/v1")
 def read_reviews(tenant, params):
     pid = params["product_id"]
-    seeded = [{"review_id": "e3883a66-7abe-52e0-a562-1ec822b28198", "product_id": pid, "rating": 5, "comment": "Great as refurbished, saved money and carbon.", "by": "A shopper", "at": "2026-09-01"}]
-    mine = [r for r in _state(tenant)["reviews"] if r["product_id"] == pid]
-    return {"product_id": pid, "reviews": mine + seeded, "average_rating": 4.8}
+    found = [r for r in store.rows("reviews", "review_id", newest_first=True) if r["product_id"] == pid]
+    return {"product_id": pid, "reviews": found,
+            "average_rating": round(sum(r["rating"] for r in found) / len(found), 1) if found else None}
 
 
 @real("/paas/feedback/review/submit/v1")
 def submit_review(tenant, params):
     review = {"review_id": _oid("rev"), "product_id": params["product_id"], "rating": int(params["rating"]),
               "comment": params.get("comment", ""), "by": _who(), "at": _now()}
+    store.rows("reviews", "review_id", newest_first=True).insert(0, review)
     _state(tenant)["reviews"].insert(0, review)
     return {"status": "submitted", "review": review}
 
@@ -393,14 +406,20 @@ def checkout(tenant, params):
              "status": "placed", "payment_method": params.get("payment_method", "card"),
              "address": params.get("address"), "placed_at": _now(), "seller": tenant["name"]}
     st["orders"].insert(0, order)
+    ops._orders().insert(0, {"order_id": order["order_id"], "customer": st["profile"].get("full_name") or _who(), "customer_email": _who(),
+                              "items": ", ".join(f"{l['name']} x{l['quantity']}" for l in order["lines"]), "lines": list(order["lines"]), "total": order["total_usd"],
+                              "status": "placed", "placed": _now()[:10]})
     st["cart"] = []
-    st["green_credits"] += int(cart["total_usd"] // 10)
+    st["green_credits"] += int(round(cart["total_usd"] * rules.green_rules(tenant["tenant_id"])["earn_per_unit"], 6))
     return {"status": "placed", "order": order, "green_credits": st["green_credits"]}
 
 
 @real("/paas/order/read/customer/v1")
 def read_orders(tenant, params):
-    return {"orders": _state(tenant)["orders"]}
+    # what the consumer's staff have done to an order (paid, shipped, delivered) shows here
+    staff = {o["order_id"]: o for o in ops._orders()}
+    orders = _state(tenant)["orders"]
+    return {"orders": [{**o, "status": staff[o["order_id"]]["status"]} if o["order_id"] in staff and o["status"] != "cancelled" else o for o in orders]}
 
 
 @real("/paas/order/cancel/customer/v1")
@@ -409,6 +428,9 @@ def cancel_order(tenant, params):
     order = next((o for o in st["orders"] if o["order_id"] == params["order_id"]), None)
     if order is None:
         raise LookupError(f"No order {params['order_id']}")
+    staff = next((o for o in ops._orders() if o["order_id"] == order["order_id"]), None)
+    if staff is not None:
+        ops.update_order_status(order["order_id"], "cancelled")  # refused when the order has already shipped
     order["status"] = "cancelled"
     order["cancel_reason"] = params.get("reason")
     return {"status": "cancelled", "order": order}
@@ -460,7 +482,8 @@ def wishlist_read(tenant, params):
 
 @real("/paas/green-credits/balance/read/v1")
 def credits_balance(tenant, params):
-    return {"balance": _state(tenant)["green_credits"], "value_usd": round(_state(tenant)["green_credits"] * 0.1, 2)}
+    each = rules.green_rules(tenant["tenant_id"])["redeem_value"]
+    return {"balance": _state(tenant)["green_credits"], "value_usd": round(_state(tenant)["green_credits"] * each, 2), "credit_value_usd": each}
 
 
 @real("/paas/green-credits/redeem/v1")
@@ -470,7 +493,7 @@ def credits_redeem(tenant, params):
     if want > st["green_credits"]:
         raise ValueError(f"You have {st['green_credits']} credits, cannot redeem {want}.")
     st["green_credits"] -= want
-    return {"status": "redeemed", "redeemed": want, "balance": st["green_credits"], "value_usd": round(want * 0.1, 2)}
+    return {"status": "redeemed", "redeemed": want, "balance": st["green_credits"], "value_usd": round(want * rules.green_rules(tenant["tenant_id"])["redeem_value"], 2)}
 
 
 @real("/paas/reserve/item/create/v1")
@@ -502,11 +525,13 @@ def reserve_cancel(tenant, params):
 def _new_bid(tenant, params, mode):
     p = _product(params["product_id"])
     offer = float(params["offer_price"])
-    counter = round(max(offer, p["current_bidding_floor"] * 1.05), 2)
+    rules.check_offer(tenant["tenant_id"], p, offer)
+    counter = round(max(offer, rules.effective_floor(tenant["tenant_id"], p) * 1.05), 2)
     bid = {"bid_id": _oid("bid"), "mode": mode, "product_id": p["id"], "name": p["name"], "offer_price": offer,
            "seller_counter": counter, "status": "open", "rounds": [{"by": _who(), "price": offer, "at": _now()},
                                                                     {"by": "seller", "price": counter, "at": _now()}], "at": _now()}
     _state(tenant)["bids"].insert(0, bid)
+    bid_flow.register(tenant, bid["bid_id"], _who())
     return bid
 
 
@@ -534,11 +559,12 @@ def bid_ai_reply(tenant, params):
     bid = _bid(tenant, params["bid_id"])
     if bid["status"] != "open":
         raise ValueError(f"This bid is already {bid['status']}.")
-    floor = _product(bid["product_id"])["current_bidding_floor"]
+    if rules.expired(tenant["tenant_id"], bid):
+        raise ValueError("This bid's window has closed. Please start a new bid.")
+    floor = rules.effective_floor(tenant["tenant_id"], _product(bid["product_id"]))
     action = params["action"]
     if action == "accept":
-        bid["status"] = "accepted"
-        bid["agreed_price"] = bid["seller_counter"]
+        bid_flow.hand_off(tenant, bid, bid["seller_counter"], "shopper")
     elif action == "decline":
         bid["status"] = "declined"
     else:
@@ -546,9 +572,11 @@ def bid_ai_reply(tenant, params):
         bid["rounds"].append({"by": _who(), "price": price, "at": _now()})
         if price >= floor:
             # an offer at or above the seller's floor is accepted at the shopper's price
-            bid["status"] = "accepted"
-            bid["agreed_price"] = price
-            bid["bot_message"] = f"Deal. ${price} it is."
+            bid_flow.hand_off(tenant, bid, price, "AI")
+        elif sum(1 for r in bid["rounds"] if r["by"] == "seller") > rules.ai_limits(tenant["tenant_id"])["max_rounds"]:
+            # the bot has used up the counters the seller allows it
+            bid["status"] = "declined"
+            bid["bot_message"] = f"I cannot go lower than ${bid['seller_counter']:.2f}. Thank you for bidding."
         else:
             # the seller moves towards the shopper but never below its floor
             bid["seller_counter"] = round(max(floor, (price + bid["seller_counter"]) / 2), 2)
@@ -560,24 +588,57 @@ def bid_ai_reply(tenant, params):
 @real("/paas/bid/human/counter/customer/v1")
 def bid_human_counter(tenant, params):
     bid = _bid(tenant, params["bid_id"])
+    if rules.expired(tenant["tenant_id"], bid):
+        raise ValueError("This bid's window has closed. Please start a new bid.")
     bid["rounds"].append({"by": _who(), "price": float(params["price"]), "at": _now()})
     return {"status": "countered", "bid": bid}
 
 
+def open_room(tenant, product, max_budget, quantity=1, condition=None):
+    """Opens a multi-seller room for the signed-in shopper: the demo sellers make their offers and the best fit inside the budget wins."""
+    if max_budget <= 0:
+        raise ValueError("Enter a budget above zero.")
+    if condition and condition not in bidding.CONDITIONS:
+        raise ValueError("Condition must be new, refurbished or used.")
+    wanted = rules.eligibility(tenant["tenant_id"])
+    if int(product.get("stock") or 0) < max(wanted["min_stock"], int(quantity or 1)):
+        raise ValueError("No seller has enough of this item in stock for the room.")
+    room = bidding.build_room(new_id(), product, round(float(max_budget), 2), int(quantity or 1), condition, min_rating=wanted["min_rating"], now=_now())
+    rooms = _state(tenant).setdefault("bid_rooms", [])
+    rooms.insert(0, room)
+    del rooms[20:]  # a shopper keeps their latest rooms
+    return room
+
+
+def _room(tenant, request_id):
+    room = next((r for r in _state(tenant).get("bid_rooms", []) if r["request_id"] == request_id), None)
+    if room is None:
+        raise LookupError(f"No bidding room {request_id}")
+    return room
+
+
+@real("/paas/bid/multi-seller/open/v1")
+def bid_open(tenant, params):
+    product = bidding.find_product(firestore_paas.list_products(), params["description"])
+    if product is None:
+        raise ValueError("No product matches that description. Name the item, for example 'refurbished smartphone'.")
+    budget = params.get("max_price") or product["retail_price"]
+    return open_room(tenant, product, budget, params.get("quantity") or 1, params.get("condition"))
+
+
 @real("/paas/bid/multi-seller/rank/read/v1")
 def bid_rank(tenant, params):
-    return {"request_id": params["request_id"], "offers": [
-        {"seller": "GreenCycle", "price": 182.0, "delivery_days": 2, "condition": "refurbished", "reliability": 4.9, "rank": 1},
-        {"seller": "EcoResale", "price": 179.0, "delivery_days": 5, "condition": "used", "reliability": 4.4, "rank": 2},
-        {"seller": "ReNew Store", "price": 188.0, "delivery_days": 1, "condition": "refurbished", "reliability": 4.7, "rank": 3}]}
+    room = _room(tenant, params["request_id"])
+    return {"request_id": room["request_id"], "status": room["status"], "offers": room["offers"], "winning_best_fit": room["winning_best_fit"], "note": room["note"]}
 
 
 # ---------- PaaS / TaaS / SaaS: AI assistants ----------
 def _assistant(topic):
     def handler(tenant, params):
+        context = {"topic": topic, "language": params.get("language") or "en", "facts": assistant_facts.build(tenant, topic)}
         if "audio" in params:
-            return {"preview": True, "transcript": "(voice input)", **vertex_ai.chat("Voice request", {"topic": topic})}
-        return {"preview": True, **vertex_ai.chat(params.get("message", ""), {"topic": topic})}
+            return {"preview": True, "transcript": "(voice input)", **vertex_ai.chat("Voice request", context)}
+        return {**vertex_ai.chat(params.get("message", ""), context)}
     return handler
 
 
@@ -594,35 +655,38 @@ REAL["/paas/bid/ai/counter-offer/voice/v1"] = _assistant("bidding")
 
 
 # ---------- TaaS: delivery, tracking, carbon ----------
-_DELIVERY_OPTIONS = [
-    {"option_id": "7db030e6-8d34-5f95-8a47-a0150cdc4412", "name": "Eco (electric van)", "days": 3, "price_usd": 0.0, "carbon_kg": 0.4, "environmental_score": 95},
-    {"option_id": "3135db76-de09-567d-a064-a5a722aa5433", "name": "Standard", "days": 2, "price_usd": 2.5, "carbon_kg": 1.2, "environmental_score": 70},
-    {"option_id": "819bca21-db42-56c0-843e-466f4bd10966", "name": "Express", "days": 1, "price_usd": 6.0, "carbon_kg": 2.8, "environmental_score": 45},
-]
+def _delivery_options() -> List[Dict[str, Any]]:
+    return store.kdoc("config", "delivery_options", lambda: {"options": []})["options"]
+
+
+def _shipment_for(order_id: str):
+    return next((s for s in firestore_taas.list_shipments() if s.get("order_id") == order_id), None)
 
 
 @real("/taas/delivery/option/list/v1")
 def delivery_options(tenant, params):
-    return {"destination_postcode": params.get("destination_postcode"), "options": _DELIVERY_OPTIONS}
+    return {"destination_postcode": params.get("destination_postcode"), "options": _delivery_options()}
 
 
 @real("/taas/tracking/read/v1")
 def track(tenant, params):
-    return {"order_id": params["order_id"], "status": "in_transit", "carrier": "EcoExpress",
-            "eta": "Tomorrow, 14:00-18:00", "events": [
-                {"at": "2026-10-12 09:10", "event": "Picked up"},
-                {"at": "2026-10-12 18:40", "event": "At Pune hub"},
-                {"at": "2026-10-13 07:05", "event": "Out for delivery"}]}
+    s = _shipment_for(params["order_id"])
+    if s is None:
+        return {"order_id": params["order_id"], "status": "not_shipped", "carrier": "", "eta": "", "events": []}
+    return {"order_id": params["order_id"], "status": s["status"], "carrier": s.get("carrier", ""), "eta": s.get("eta", ""), "events": s.get("events", [])}
 
 
 @real("/taas/carbon/footprint/delivery/read/v1")
 def carbon_delivery(tenant, params):
-    return {"order_id": params["order_id"], "carbon_kg": 0.4, "method": "distance-based", "note": "Delivered by electric van."}
+    s = _shipment_for(params["order_id"])
+    if s is None:
+        return {"order_id": params["order_id"], "carbon_kg": None, "method": "", "note": "This order has not shipped yet."}
+    return {"order_id": params["order_id"], "carbon_kg": s.get("co2_kg"), "method": s.get("mode", ""), "note": s.get("carbon_note", "")}
 
 
 @real("/taas/carbon/footprint/offer/read/v1")
 def carbon_offer(tenant, params):
-    return {"offer_id": params["offer_id"], "carbon_kg": 1.2, "environmental_score": 70}
+    return {"offer_id": params["offer_id"], "carbon_kg": None, "environmental_score": None}
 
 
 @real("/taas/environment/transport-score/read/v1")
@@ -640,6 +704,15 @@ def _new_ticket(tenant, params, kind):
               "messages": [{"by": _who(), "message": params.get("message") or params.get("description") or params.get("reason") or params.get("issue") or "", "at": _now()}],
               "at": _now(), "consumer": tenant["name"]}
     st["tickets"].insert(0, ticket)
+    text = ticket["messages"][0]["message"]
+    ops._tickets().insert(0, {"ticket_id": ticket["ticket_id"], "customer": st["profile"].get("full_name") or _who(), "customer_email": _who(),
+                               "subject": ticket["subject"], "type": kind, "status": "open",
+                               "messages": [{"from": "Customer", "text": text}] if text else []})
+    if kind == "return":
+        order = next((o for o in st["orders"] if o["order_id"] == params.get("order_id")), None)
+        ops._returns().insert(0, {"return_id": ticket["ticket_id"], "order_id": params.get("order_id"), "customer": st["profile"].get("full_name") or _who(),
+                                   "item": ", ".join(l["name"] for l in order["lines"]) if order else "", "reason": text,
+                                   "amount": order["total_usd"] if order else 0, "status": "requested"})
     return ticket
 
 
@@ -665,7 +738,17 @@ def ticket_tradein(tenant, params):
 
 @real("/saas/ticket/read/customer/v1")
 def read_tickets(tenant, params):
-    return {"tickets": _state(tenant)["tickets"]}
+    return {"tickets": [_ticket_view(t) for t in _state(tenant)["tickets"]]}
+
+
+def _ticket_view(ticket):
+    """The shopper's ticket, with the status and the conversation the consumer's staff have added."""
+    staff = next((t for t in ops._tickets() if t["ticket_id"] == ticket["ticket_id"]), None)
+    if staff is None:
+        return ticket
+    thread = [{"by": m.get("author") or ("You" if m["from"] == "Customer" else "Support"), "message": m["text"], "at": m.get("at", ""), "from": m["from"]}
+              for m in staff["messages"]]
+    return {**ticket, "status": staff["status"], "messages": thread or ticket["messages"]}
 
 
 def _find_ticket(tenant, ticket_id):
@@ -679,13 +762,19 @@ def _find_ticket(tenant, ticket_id):
 def reply_ticket(tenant, params):
     ticket = _find_ticket(tenant, params["ticket_id"])
     ticket["messages"].append({"by": _who(), "message": params["message"], "at": _now()})
-    return {"status": "replied", "ticket": ticket}
+    staff = next((t for t in ops._tickets() if t["ticket_id"] == ticket["ticket_id"]), None)
+    if staff is not None:
+        staff["messages"].append({"from": "Customer", "text": params["message"], "at": _now()})
+        if staff["status"] in ("resolved", "closed"):
+            staff["status"] = "open"  # a reply reopens it
+    return {"status": "replied", "ticket": _ticket_view(ticket)}
 
 
 @real("/saas/ticket/status/read/v1")
 def ticket_status(tenant, params):
     ticket = _find_ticket(tenant, params["ticket_id"])
-    return {"ticket_id": ticket["ticket_id"], "status": ticket["status"], "type": ticket["type"], "messages": ticket["messages"]}
+    view = _ticket_view(ticket)
+    return {"ticket_id": view["ticket_id"], "status": view["status"], "type": view["type"], "messages": view["messages"]}
 
 
 @real("/saas/return/request/create/v1")
@@ -706,15 +795,30 @@ def recycling_request(tenant, params):
 
 @real("/saas/grading/photo/submit/v1")
 def grading_submit(tenant, params):
-    upload = cloud_storage.create_upload_url(params.get("return_id", "item"), "image/jpeg")
-    return {"preview": True, "status": "submitted", "upload": upload, "return_id": params.get("return_id"),
-            "message": "Photos submitted. A grade and value will be ready before you ship."}
+    """Grades the first photo with Gemini and keeps the result for this return, so the shopper sees it before shipping."""
+    return_id = params.get("return_id")
+    photos = params.get("photos") or []
+    if isinstance(photos, str):
+        photos = [photos]
+    if not photos:
+        raise ValueError("Add a photo of the item.")
+    image, mime = decode_photo(photos[0])
+    take_turn(_who())
+    result = vertex_ai.grade_return_photo(return_id, image, mime)
+    st = _state(tenant)
+    st.setdefault("gradings", {})[str(return_id)] = {"grade": result["ai_evaluated_grade"], "recovery_percentage": result["predicted_recovery_percentage"],
+                                                     "route": result["recommended_channel"], "defects": result["defects"],
+                                                     "reason": result["reasoning"], "graded_at": _now()}
+    return {"status": "graded" if result["ai_evaluated_grade"] else "not_graded", "return_id": return_id, **st["gradings"][str(return_id)],
+            "message": "Graded from your photo. The value shown is an estimate until the item is inspected."}
 
 
 @real("/saas/grading/result/read/v1")
 def grading_result(tenant, params):
-    return {"return_id": params.get("return_id"), "grade": "B", "estimated_value_usd": 96.0,
-            "route": "refurbish", "reason": "Light wear on the casing; fully working.", "preview": True}
+    found = _state(tenant).get("gradings", {}).get(str(params.get("return_id")))
+    if not found:
+        return {"return_id": params.get("return_id"), "grade": None, "reason": "No photo has been graded for this return yet. Submit a photo first."}
+    return {"return_id": params.get("return_id"), **found}
 
 
 @real("/saas/trade-in/request/create/v1")
@@ -724,42 +828,39 @@ def tradein_request(tenant, params):
 
 @real("/saas/trade-in/valuation/read/v1")
 def tradein_valuation(tenant, params):
-    return {"trade_in_id": params.get("trade_in_id"), "estimated_value_usd": 108.0,
-            "valuation_id": _oid("val"), "reason": "AI estimate from condition and current demand.", "preview": True}
+    return {"trade_in_id": params.get("trade_in_id"), "estimated_value_usd": 0,
+            "valuation_id": _oid("val"), "reason": "", "preview": True}
 
 
 @real("/saas/trade-in/offer/accept/v1")
 def tradein_accept(tenant, params):
     st = _state(tenant)
-    st["green_credits"] += 50
-    return {"status": "accepted", "trade_in_id": params.get("trade_in_id"), "credited_usd": 108.0,
+    return {"status": "accepted", "trade_in_id": params.get("trade_in_id"), "credited_usd": 0,
             "green_credits": st["green_credits"]}
 
 
 @real("/saas/recommendation/reuse/read/v1")
 def reuse_advice(tenant, params):
-    return {"item_id": params.get("item_id"), "advice": "This item is a strong resale candidate; refurbish and relist.",
-            "route": "reuse", "preview": True}
+    return {"item_id": params.get("item_id"), "advice": "",
+            "route": "", "preview": True}
 
 
 @real("/saas/recommendation/recycle/read/v1")
 def recycle_advice(tenant, params):
-    return {"item_id": params.get("item_id"), "advice": "Beyond economic repair; send to a certified recycler to recover 86% of materials.",
-            "route": "recycle", "preview": True}
+    return {"item_id": params.get("item_id"), "advice": "",
+            "route": "", "preview": True}
 
 
 @real("/saas/explain/decision/read/v1")
 def saas_explain(tenant, params):
-    return {"decision_id": params.get("decision_id"), "summary": "Graded B and routed to refurbishment.",
-            "factors": [{"factor": "Condition", "detail": "Light cosmetic wear, fully working."},
-                        {"factor": "Demand", "detail": "High resale demand for this model."}]}
+    return {"decision_id": params.get("decision_id"), "summary": "", "factors": []}
 
 
 @real("/saas/scorecard/customer/read/v1")
 def scorecard(tenant, params):
     st = _state(tenant)
-    return {"value_recovered_usd": 216.0 + len(st["orders"]) * 10, "waste_diverted_kg": 7.4,
-            "carbon_saved_kg": 12.6, "green_credits": st["green_credits"], "orders": len(st["orders"])}
+    return {"value_recovered_usd": 0, "waste_diverted_kg": 0,
+            "carbon_saved_kg": 0, "green_credits": st["green_credits"], "orders": len(st["orders"])}
 
 
 @real("/saas/dropoff/status/read/v1")

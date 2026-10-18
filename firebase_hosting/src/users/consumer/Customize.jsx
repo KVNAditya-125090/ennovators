@@ -166,10 +166,9 @@ function Storefront() {
   const [publishing, setPublishing] = useState(false);
   const features = Object.values(endpoints).filter((e) => e.actor === 'Customer');
 
-  useEffect(() => {
-    // fields that were never filled in start from sensible defaults, so the editor is never blank
-    if (t?.exists) setDraft({ layout: t.layout, branding: { ...DEFAULTS(workspace?.tenant?.name ?? '').branding, ...Object.fromEntries(Object.entries(t.branding).filter(([, v]) => v)) }, sections: t.sections.map((s) => (typeof s === 'string' ? s : s.path)) });
-  }, [t]);
+  // the saved template as the editor shows it: fields that were never filled in start from sensible defaults, so the editor is never blank
+  const editable = (tpl) => ({ layout: tpl.layout, branding: { ...DEFAULTS(workspace?.tenant?.name ?? '').branding, ...Object.fromEntries(Object.entries(tpl.branding).filter(([, v]) => v)) }, sections: tpl.sections.map((s) => (typeof s === 'string' ? s : s.path)) });
+  useEffect(() => { if (t?.exists) setDraft(editable(t)); }, [t]);
 
   if (!t) return <ErrorNote error={template.error} />;
   if (!t.exists) {
@@ -188,8 +187,9 @@ function Storefront() {
   }
   if (!draft) return null;
 
-  const saved = { layout: t.layout, branding: t.branding, sections: t.sections.map((s) => (typeof s === 'string' ? s : s.path)) };
-  const dirty = JSON.stringify(saved) !== JSON.stringify(draft);
+  // compare like with like, and ignore the order of keys: the server may send them in another order than the editor builds them
+  const sorted = (v) => JSON.stringify(v, (k, val) => (val && typeof val === 'object' && !Array.isArray(val) ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => a.localeCompare(b))) : val));
+  const dirty = sorted(editable(t)) !== sorted(draft);
   const setBrand = (k, v) => setDraft({ ...draft, branding: { ...draft.branding, [k]: v } });
   const q = query.trim().toLowerCase();
   const matches = features.filter((f) => !q || f.description.toLowerCase().includes(q));
@@ -202,7 +202,7 @@ function Storefront() {
         <div className="flex items-center gap-2 text-base text-google-gray-700">Your customer storefront {status}</div>
         <div className="flex items-center gap-2">
           <Btn disabled={!dirty || act.busy} onClick={() => act.run('/maas/interface/template/update/v1', draft, 'Draft saved')}>Save draft</Btn>
-          {can('/maas/interface/template/publish/v1') && <Btn kind="primary" disabled={dirty || act.busy} onClick={() => { act.setError(''); setPublishing(true); }} className="px-4">Publish</Btn>}
+          {can('/maas/interface/template/publish/v1') && <Btn kind="primary" disabled={dirty || act.busy} title={dirty ? 'Save your draft first, then publish it' : undefined} onClick={() => { act.setError(''); setPublishing(true); }} className="px-4">Publish</Btn>}
         </div>
       </div>
       <ErrorNote error={act.error && !publishing ? act.error : ''} />

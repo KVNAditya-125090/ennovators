@@ -19,7 +19,9 @@ function Thread({ ticket, statuses, act }) {
         <div className="flex items-center gap-3"><Avatar name={ticket.customer} /><div><div className="font-bold text-google-gray-900">{ticket.subject}</div><div className="text-sm text-google-gray-500">{ticket.ticket_id} • {ticket.customer}</div></div></div>
         <div className="flex items-center gap-2">
           {can('/saas/ticket/status/update/v1') && !closed
-            ? <StatusSelect value={ticket.status} options={can('/saas/ticket/close/v1') ? statuses.filter((s) => s !== 'closed') : statuses} disabled={act.busy} onChange={(status) => act.run('/saas/ticket/status/update/v1', { ticket_id: ticket.ticket_id, status }, `Marked ${label(status).toLowerCase()}`)} />
+            ? <StatusSelect value={ticket.status} options={can('/saas/ticket/close/v1') ? statuses : statuses.filter((s) => s !== 'closed')} disabled={act.busy} onChange={(status) => (status === 'closed'
+              ? act.run('/saas/ticket/close/v1', { ticket_id: ticket.ticket_id }, 'Ticket closed')
+              : act.run('/saas/ticket/status/update/v1', { ticket_id: ticket.ticket_id, status }, `Marked ${label(status).toLowerCase()}`))} />
             : <Pill value={ticket.status} />}
           <RowMenu items={[{ label: 'Close ticket', hidden: closed || !can('/saas/ticket/close/v1'), onClick: () => act.run('/saas/ticket/close/v1', { ticket_id: ticket.ticket_id }, 'Ticket closed') }]} />
         </div>
@@ -33,6 +35,7 @@ function Thread({ ticket, statuses, act }) {
               <div className={`w-fit whitespace-pre-wrap break-words px-4 py-2.5 text-base leading-relaxed shadow-sm ${staff ? 'rounded-2xl rounded-br-md bg-google-blue text-white' : 'rounded-2xl rounded-bl-md border border-google-gray-200 bg-white text-google-gray-900'}`}>
                 {m.text}
               </div>
+              {m.at && <span className="px-1 text-xs text-google-gray-400">{m.at} UTC</span>}
             </div>
           );
         })}

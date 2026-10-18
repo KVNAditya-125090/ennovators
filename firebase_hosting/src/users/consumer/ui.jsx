@@ -101,14 +101,14 @@ export function DataTable({ columns, rows, rowKey, empty = 'Nothing to show.', o
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs uppercase tracking-wide text-google-gray-500 border-b border-google-gray-200">
-            {columns.map((c) => <th key={c.key} className={`py-2.5 pr-4 font-medium ${c.className || ''}`}>{c.header}</th>)}
+            {columns.map((c) => <th key={c.key} className={`py-2.5 pr-4 font-medium ${c.className || ''} ${c.sticky ? 'sticky right-0 w-14 min-w-[3.5rem] whitespace-nowrap bg-white pl-2' : ''}`}>{c.header}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={rowKey(r)} onClick={onRowClick ? () => onRowClick(r) : undefined}
               className={`border-b border-google-gray-100 last:border-0 transition-colors hover:bg-google-blue-light/40 ${onRowClick ? 'cursor-pointer' : ''} ${selectedKey === rowKey(r) ? 'bg-google-blue-light/40' : ''}`}>
-              {columns.map((c) => <td key={c.key} className={`py-3 pr-4 align-middle ${c.className || ''}`}>{c.render(r)}</td>)}
+              {columns.map((c) => <td key={c.key} className={`py-3 pr-4 align-middle ${c.className || ''} ${c.sticky ? 'sticky right-0 w-14 min-w-[3.5rem] whitespace-nowrap bg-white pl-2 shadow-[-10px_0_8px_-8px_rgba(0,0,0,0.12)]' : ''}`}>{c.render(r)}</td>)}
             </tr>
           ))}
         </tbody>

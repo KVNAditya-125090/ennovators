@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { ImagePlus, X, Film, Loader2 } from 'lucide-react';
-import { loadSession } from '../../services/maas/session';
+import { authHeader } from '../../services/maas/session';
+import { apiUrl } from '../../api';
 
 // Photos and videos for a product, uploaded as the person picks them. The same limits are enforced by the server
 // (cloud_run/media.py), which also reads the real type of each file; these checks only save a wasted upload.
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const VIDEO_TYPES = ['video/mp4', 'video/webm'];
 const MAX_IMAGE = 10 * 1024 * 1024;
-const MAX_VIDEO = 100 * 1024 * 1024;
+const MAX_VIDEO = 30 * 1024 * 1024;
 const MAX_FILES = 10;
 
 const mb = (n) => `${(n / (1024 * 1024)).toFixed(n > 10 * 1024 * 1024 ? 0 : 1)} MB`;
@@ -15,11 +16,10 @@ const mb = (n) => `${(n / (1024 * 1024)).toFixed(n > 10 * 1024 * 1024 ? 0 : 1)} 
 // Sends one file as the request body; reports progress; resolves to { url, kind }
 function send(tenantId, file, onProgress) {
   return new Promise((resolve, reject) => {
-    const email = loadSession()?.email;
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `/api/v1/consumer/media?filename=${encodeURIComponent(file.name)}`);
+    xhr.open('POST', apiUrl(`/api/v1/consumer/media?filename=${encodeURIComponent(file.name)}`));
     xhr.setRequestHeader('X-Tenant-Id', tenantId || '');
-    if (email) xhr.setRequestHeader('X-User-Email', encodeURIComponent(email));
+    Object.entries(authHeader()).forEach(([name, value]) => xhr.setRequestHeader(name, value));
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100)); };
     xhr.onerror = () => reject(new Error('The upload could not reach the platform. Check that it is running.'));
@@ -52,7 +52,7 @@ export default function MediaField({ tenantId, value, onChange, onBusy, label = 
       const isImage = IMAGE_TYPES.includes(file.type);
       const isVideo = VIDEO_TYPES.includes(file.type);
       if (!isImage && !isVideo) rejected.push({ id: `${file.name}-${Math.random()}`, name: file.name, error: 'Use JPG, PNG, WebP or GIF pictures, or MP4 or WebM videos.' });
-      else if (file.size > (isImage ? MAX_IMAGE : MAX_VIDEO)) rejected.push({ id: `${file.name}-${Math.random()}`, name: file.name, error: `Too large (${mb(file.size)}). Pictures up to 10 MB, videos up to 100 MB.` });
+      else if (file.size > (isImage ? MAX_IMAGE : MAX_VIDEO)) rejected.push({ id: `${file.name}-${Math.random()}`, name: file.name, error: `Too large (${mb(file.size)}). Pictures up to 10 MB, videos up to 30 MB.` });
       else if (room <= 0) rejected.push({ id: `${file.name}-${Math.random()}`, name: file.name, error: `A product can have up to ${MAX_FILES} files.` });
       else { room -= 1; queue.push({ id: `${file.name}-${Math.random()}`, name: file.name, progress: 0, file }); }
     }

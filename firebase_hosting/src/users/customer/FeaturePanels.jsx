@@ -4,6 +4,7 @@ import { Dropdown, ErrorNote, FIELD, label, money, useToast } from '../consumer/
 import { fieldsFor } from '../../services/features/FeatureCards';
 import { getStorefront } from './api';
 import ResultView from './Results';
+import { shrinkPhoto } from '../../services/saas/photo';
 
 // How a shopper uses the features that have no screen of their own. Nothing opens in a pop-up:
 //  - a feature that only shows something (no input needed) is displayed right there, and refreshes in place;
@@ -44,11 +45,44 @@ function useChoices(name, ctx) {
   return spec ? { rows, spec } : null;
 }
 
+// Photos for grading: the shopper picks up to 3 pictures, shrunk in the browser, and the first one is graded
+function PhotoPicker({ field, value, onChange }) {
+  const photos = Array.isArray(value) ? value : [];
+  const [problem, setProblem] = useState('');
+  const add = async (files) => {
+    setProblem('');
+    try {
+      const next = await Promise.all([...files].slice(0, 3 - photos.length).map((f) => shrinkPhoto(f)));
+      onChange([...photos, ...next]);
+    } catch (err) { setProblem(err.message); }
+  };
+  return (
+    <div>
+      <input type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label={field.label} disabled={photos.length >= 3} onChange={(e) => { add(e.target.files); e.target.value = ''; }}
+        className="block w-full text-sm text-google-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-google-gray-100 file:px-3 file:py-2 file:text-sm file:font-semibold" />
+      {problem && <span className="mt-1 block text-xs text-google-red">{problem}</span>}
+      {photos.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {photos.map((src, i) => (
+            <div key={i} className="relative">
+              <img src={src} alt={`Photo ${i + 1}`} className="h-16 w-16 rounded-lg border border-google-gray-200 object-cover" />
+              <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => onChange(photos.filter((_, j) => j !== i))}
+                className="absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full bg-google-gray-700 text-xs leading-5 text-white">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Field({ field, value, onChange, ctx }) {
   const choices = useChoices(field.name, ctx);
   const options = choices?.rows?.length ? choices.rows.map((r) => ({ value: choices.spec.value(r), label: choices.spec.text(r) })) : null;
   let control;
-  if (options) {
+  if (field.name === 'photos') {
+    control = <PhotoPicker field={field} value={value} onChange={onChange} />;
+  } else if (options) {
     control = <Dropdown ariaLabel={field.label} value={value} onChange={onChange} options={options} placeholder="Choose one" />;
   } else if (field.type === 'select') {
     control = <Dropdown ariaLabel={field.label} value={value} onChange={onChange} options={field.options.map((o) => (typeof o === 'string' ? { value: o, label: label(o) } : o))} />;
@@ -75,7 +109,8 @@ const typed = (endpoint, fields, values) => {
     const raw = values[f.name];
     if (raw === '' || raw === undefined) return;
     const p = endpoint.parameters.find((x) => x.name === f.name);
-    if (p.type === 'bool') out[f.name] = raw === 'true';
+    if (Array.isArray(raw)) out[f.name] = raw;
+    else if (p.type === 'bool') out[f.name] = raw === 'true';
     else if (p.type === 'obj') { try { out[f.name] = JSON.parse(raw); } catch { throw new Error(`${f.label} must be JSON, for example {"key": "value"}`); } }
     else if (f.type === 'number') out[f.name] = Number(raw);
     else if (f.type === 'lines') out[f.name] = String(raw).split('\n').map((x) => x.trim()).filter(Boolean);
@@ -131,7 +166,7 @@ function ActionPanel({ e, ctx }) {
   const wrote = !read(e);
   const submit = async (ev) => {
     ev.preventDefault();
-    const missing = fields.find((f) => f.required && (values[f.name] === '' || values[f.name] === undefined));
+    const missing = fields.find((f) => f.required && (values[f.name] === '' || values[f.name] === undefined || (Array.isArray(values[f.name]) && values[f.name].length === 0)));
     if (missing) { setError(`Fill in ${missing.label.toLowerCase()}.`); return; }
     setBusy(true);
     setError('');

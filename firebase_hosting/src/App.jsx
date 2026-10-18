@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { loadSession, saveSession, clearSession } from './services/maas/session';
+import { loadSession, saveSession, clearSession, isRootUser } from './services/maas/session';
 import LandingPage from './users/customer/LandingPage';
 import SignInModal from './services/maas/SignInModal';
 import Navbar from './Navbar';
@@ -11,7 +11,9 @@ import CustomerView from './users/customer/CustomerView';
 import { clearCustomerCache } from './users/customer/api';
 import { userBase, setBase, navigate, usePath } from './router';
 import BiddingModal from './services/paas/BiddingModal';
+import { SettingsProvider } from './settings/SettingsProvider';
 import AiAssistantDrawer from './services/paas/AiAssistantDrawer';
+import MailPages, { isMailPath } from './services/maas/MailPages';
 
 // The first page of each kind of user; a Consumer's is chosen by the Root (see ConsumerNav)
 const DEFAULT_PAGE = { owner: 'maas/dashboard', consumer: '', customer: 'paas/shop' };
@@ -22,10 +24,15 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(loadSession); // restored after a reload
   const isAuthenticated = currentUser !== null;
   const activeRole = currentUser ? currentUser.role : 'Customer'; // set by the account: Owner, Consumer or Customer
-  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(() => new URLSearchParams(window.location.search).get('signin') === '1'); // /?signin=1 opens the sign-in box
   const [selectedProductForBid, setSelectedProductForBid] = useState(null);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState(false);
   const path = usePath();
+  useEffect(() => { // the mail pages ask for the sign-in box once they send the person home
+    const open = () => setIsSignInModalOpen(true);
+    window.addEventListener('open-signin', open);
+    return () => window.removeEventListener('open-signin', open);
+  }, []);
   setBase(currentUser ? userBase(currentUser) : '');
 
   // Keep the address in the form /<user>/<role>/<service>/<category>/...
@@ -33,6 +40,7 @@ export default function App() {
   // Signed in: an address for another user type or role is moved into this person's own area.
   useEffect(() => {
     const now = window.location.pathname; // the live address (an earlier run may already have moved it)
+    if (isMailPath(now)) return; // the pages a mail links to keep their own address
     const parts = now.split('/').filter(Boolean);
     const hash = window.location.hash.startsWith('#/') ? window.location.hash.slice(2) : '';
     if (!currentUser) {
@@ -78,22 +86,32 @@ export default function App() {
     navigate('/', { replace: true });
   };
 
+  // The pages a mail links to (reset password, accept invite, the demo mailbox) work signed in or out
+  if (isMailPath(path)) {
+    return (
+      <SettingsProvider user={currentUser}>
+        <MailPages path={path} />
+      </SettingsProvider>
+    );
+  }
+
   // If not authenticated, show public Product Landing Page
   if (!isAuthenticated) {
     return (
-      <>
+      <SettingsProvider user={null}>
         <LandingPage onOpenSignIn={() => setIsSignInModalOpen(true)} />
         <SignInModal
           isOpen={isSignInModalOpen}
           onClose={() => setIsSignInModalOpen(false)}
           onSignInSuccess={handleSignInSuccess}
         />
-      </>
+      </SettingsProvider>
     );
   }
 
   // Once signed in, render the interactive platform dashboard
   return (
+    <SettingsProvider user={currentUser}>
     <div className="app-shell app-bg flex flex-col">
       <Navbar
         activeRole={activeRole}
@@ -105,7 +123,7 @@ export default function App() {
       <main id="app-scroll" className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
         <div className={`${CONTAINER} py-5 sm:py-6`}>
           {activeRole === 'Owner' && <OwnerView />}
-          {activeRole === 'Consumer' && <ConsumerView tenant={currentUser?.tenant} isRoot={currentUser?.department === 'Root'} user={currentUser} />}
+          {activeRole === 'Consumer' && <ConsumerView tenant={currentUser?.tenant} isRoot={isRootUser(currentUser)} user={currentUser} />}
           {activeRole === 'Customer' && (
             <CustomerView
               user={currentUser}
@@ -133,5 +151,6 @@ export default function App() {
         onClose={() => setIsAiDrawerOpen(false)}
       />
     </div>
+    </SettingsProvider>
   );
 }

@@ -12,3 +12,6 @@ def chat(message: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
 
 def triage_return(item_id: str, image_url: str = None) -> Dict[str, Any]:
     return vertex_saas.evaluate_return_photo(item_id, image_url)
+
+def grade_return_photo(item_id: str, image: bytes, mime: str) -> Dict[str, Any]:
+    return vertex_saas.evaluate_return_photo(item_id, image=image, mime=mime)

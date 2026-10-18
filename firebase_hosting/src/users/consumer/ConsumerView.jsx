@@ -35,7 +35,7 @@ export default function ConsumerView({ tenant, isRoot, user }) {
   }, [section, feature, endpoints]);
 
   useEffect(() => {
-    getDashboard('SKU-WATCH-G3', tenant)
+    getDashboard('', tenant)
       .then((dashboard) => setWorkspace(dashboard.workspace))
       .catch(() => { if (!loaded.current) setFailed(true); });
     loadOpted(tenant, user?.email)

@@ -179,6 +179,7 @@ path,service,feature,sub_category,version,actor,description,ai,list_item,depends
 /paas/bid/ai/finalize/handoff/v1,paas,bid,ai/finalize/handoff,v1,AI,Bot hands the finalized deal to the Consumer,Yes,18a,maas
 /paas/bid/ai/decision/accept/v1,paas,bid,ai/decision/accept,v1,Consumer staff,Consumer accepts the finalized deal,No,18a,maas
 /paas/bid/ai/decision/reject/v1,paas,bid,ai/decision/reject,v1,Consumer staff,Consumer rejects the finalized deal,No,18a,maas
+/paas/bid/ai/pending/list/v1,paas,bid,ai/pending/list,v1,Consumer staff,List AI-bid deals handed to the Consumer,No,18a,maas
 /paas/bid/human/start/v1,paas,bid,human/start,v1,Customer,Start a human-only bid with the Consumer,No,18b,maas
 /paas/bid/human/offer/respond/v1,paas,bid,human/offer/respond,v1,Consumer staff,Consumer responds to a bid,No,18b,maas
 /paas/bid/human/counter/customer/v1,paas,bid,human/counter/customer,v1,Customer,Customer counters,No,18b,maas

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Download } from 'lucide-react';
 import { Section, Dropdown, ErrorNote, FIELD, Pill, useToast } from '../consumer/ui';
+import { AddressAutocomplete, mapsConfigured } from '../../maps';
 
 // The signed-in shopper's own account: profile, language, password, their data, and closing the account.
 // Registering, signing in and resetting a password are not here: they happen before sign-in (the sign-in screen).
@@ -78,6 +79,11 @@ function ProfileCard({ call, can }) {
           </div>
           <fieldset className="grid gap-3 md:grid-cols-2">
             <legend className="mb-1 text-sm font-semibold text-google-gray-800">Delivery address</legend>
+            {mapsConfigured() && editable && (
+              <div className="md:col-span-2"><Label text="Find your address" optional>
+                <AddressAutocomplete placeholder="Start typing your address" onSelect={(p) => setForm((x) => ({ ...x, line1: p.parts.line1 || p.address, city: p.parts.city || x.city, postcode: p.parts.postcode || x.postcode, country: p.parts.country || x.country }))} />
+              </Label></div>
+            )}
             <div className="md:col-span-2"><Label text="Street address" optional><input className={FIELD} disabled={!editable} value={form.line1} onChange={set('line1')} /></Label></div>
             <Label text="City" optional><input className={FIELD} disabled={!editable} value={form.city} onChange={set('city')} /></Label>
             <Label text="Postcode" optional><input className={FIELD} disabled={!editable} value={form.postcode} onChange={set('postcode')} /></Label>

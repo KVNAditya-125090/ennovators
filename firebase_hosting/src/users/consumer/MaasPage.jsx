@@ -49,14 +49,14 @@ function Overview() {
         <section className="google-card p-5 mb-3">
           <div className="grid gap-x-10 gap-y-6 md:grid-cols-3">
             {[
-              ['Company', [['Legal name', a.company.legal_name], ['Industry', a.company.industry], ['Address', a.company.address], ['Website', a.company.website]]],
-              ['Contact', [['Name', a.contact.name], ['Role', a.contact.title], ['Department', a.contact.department], ['Mobile number', a.contact.phone], ['Email', <a key="m" href={`mailto:${a.contact.email}`} className="text-google-teal hover:underline">{a.contact.email}</a>], ['Working hours', a.contact.working_hours]]],
-              ['Billing', [['Plan', a.billing.plan], ['Billing cycle', a.billing.billing_cycle], ['Payment status', <Pill key="p" value={a.billing.payment_status === 'Paid' ? 'resolved' : 'placed'} label={a.billing.payment_status} />], ['Next invoice', new Date(`${a.billing.next_invoice}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })]]]
-            ].map(([group, rows], i) => (
+              ['Company', [['Legal name', a.company?.legal_name ?? a.name], ['Industry', a.company?.industry], ['Address', a.company?.address], ['Website', a.company?.website]]],
+              a.contact && ['Contact', [['Name', a.contact.name], ['Role', a.contact.title], ['Department', a.contact.department], ['Mobile number', a.contact.phone], ['Email', a.contact.email && <a key="m" href={`mailto:${a.contact.email}`} className="text-google-teal hover:underline">{a.contact.email}</a>], ['Working hours', a.contact.working_hours]]],
+              a.billing && ['Billing', [['Plan', a.billing.plan], ['Billing cycle', a.billing.billing_cycle], ['Payment status', a.billing.payment_status && <Pill key="p" value={a.billing.payment_status === 'Paid' ? 'resolved' : 'placed'} label={a.billing.payment_status} />], ['Next invoice', a.billing.next_invoice && new Date(`${a.billing.next_invoice}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })]]]
+            ].filter(Boolean).map(([group, rows], i) => (
               <div key={group} className={['md:text-left', 'md:text-center', 'md:text-right'][i]}>
                 <div className="mb-3 text-sm font-bold uppercase tracking-wider text-google-gray-600">{group}</div>
                 <dl className="space-y-3">
-                  {rows.map(([k, v]) => (
+                  {rows.filter(([, v]) => v).map(([k, v]) => (
                     <div key={k}><dt className="text-sm text-google-gray-500">{k}</dt><dd className="text-base font-medium text-google-gray-900">{v}</dd></div>
                   ))}
                 </dl>
@@ -72,7 +72,7 @@ function Overview() {
           <Kpi icon={Layers} tone="blue" label="Features in use" value={`${d.endpoints_opted.toLocaleString()}/${d.endpoints_total.toLocaleString()}`} hint="Opted into, of all available" />
           <Kpi icon={Activity} tone="teal" label="Calls this month" value={d.calls.toLocaleString()} />
           <Kpi icon={Wallet} tone="green" label="Charges this month" value={money(d.cost_usd)} />
-          {a && <Kpi icon={CalendarDays} tone="yellow" label="Next invoice" value={a.billing.next_invoice} hint={`${a.billing.plan} plan • ${a.billing.payment_status}`} />}
+          {a?.billing && <Kpi icon={CalendarDays} tone="yellow" label="Next invoice" value={a.billing.next_invoice} hint={`${a.billing.plan} plan • ${a.billing.payment_status}`} />}
         </Kpis>
       )}
 

@@ -17,10 +17,10 @@ from typing import Any, Callable, Dict, List, Optional
 from cloud_sql.services.maas.endpoints import endpoint_registry
 from firestore.users.consumer import operations as ops
 from cloud_run.ids import new_id
+from firestore import store
 
 # People, plus the automatic jobs, AI services and partner actions that work on a consumer's data (run on demand in the preview)
 PREVIEW_ACTORS = {"Consumer root", "Consumer staff", "Owner manager", "Owner operator", "Owner developer", "System", "AI", "Partner"}
-STORE: Dict[tuple, List[Dict[str, Any]]] = {}  # (scope, service, feature) -> records, newest first
 _ids = itertools.count(1)
 
 def _now() -> str:
@@ -33,14 +33,16 @@ def _mask(endpoint: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
 
 def run(scope: str, endpoint: Dict[str, Any], params: Dict[str, Any], actor: Optional[str] = None) -> Dict[str, Any]:
     """scope: the consumer's tenant id, or "owner" for the Owner side."""
-    key = (scope, endpoint["service"], endpoint["feature"])
+    # kept in Firestore: under the consumer, or at the top level for the Owner's own records
+    options = {"scope": "global"} if scope == "owner" else {"tenant_id": scope}
+    records = store.kdoc("preview", f"{endpoint['service']}__{endpoint['feature']}", lambda: {"items": []}, **options)["items"]
     if endpoint["method"] == "GET":
-        items = [r for r in STORE.get(key, []) if all(str(r["params"].get(k)) == str(v) for k, v in params.items() if v not in (None, "") and k in r["params"])]
+        items = [r for r in records if all(str(r["params"].get(k)) == str(v) for k, v in params.items() if v not in (None, "") and k in r["params"])]
         return {"preview": True, "items": items,
                 "note": "Preview: shows what was recorded for this feature in this session. Real data arrives once the backend is connected."}
     record = {"id": new_id(), "action": endpoint["sub_category"].replace("/", " "), "endpoint": endpoint["path"],
               "params": _mask(endpoint, params), "at": _now(), "by": actor or ops.ACTOR.get() or "", "status": "recorded"}
-    STORE.setdefault(key, []).insert(0, record)
+    records.insert(0, record)
     return {"preview": True, "record": record,
             "message": f"{endpoint['description']}: recorded in the preview. It takes effect once the backend is connected."}
 

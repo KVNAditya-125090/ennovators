@@ -1,4 +1,6 @@
 firebase_hosting/
-looker_studio/
 venv/
 __pycache__/
+.git/
+node_modules/
+cloud_storage/uploads/

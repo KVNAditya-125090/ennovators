@@ -7,6 +7,7 @@ import AccountPage from './AccountPage';
 import CartPage from './CartPage';
 import AssistantChat from './AssistantChat';
 import Storefront from './Storefront';
+import StoresMap from './StoresMap';
 
 // What the Customer portal shows for the signed-in shopper: the consumer's brand, then the page in the address.
 // Every feature the consumer switched on for customers is reachable here; features without a dedicated screen are
@@ -78,6 +79,7 @@ export default function CustomerView({ onOpenBidding, onOpenAiAssistant, user })
 
         {pageInfo.screen === 'account' && <AccountPage call={call} can={can} />}
         {pageInfo.screen === 'cart' && <CartPage call={call} can={can} />}
+        {pageInfo.screen === 'stores' && <StoresMap call={call} can={can} />}
         {pageInfo.screen === 'assistant' && <AssistantChat service={service} call={call} can={can} />}
 
         <FeaturePanels

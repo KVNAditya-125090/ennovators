@@ -341,9 +341,9 @@ function ServiceExplorer() {
           );
         })}
       </div>
-      <div key={svc.code} role="tabpanel" className="animate-slide-left google-card overflow-hidden">
+      <div key={svc.code} role="tabpanel" className="animate-slide-left google-card flex flex-col overflow-hidden">
         <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${SERVICE_COLOUR[svc.code]}, transparent)` }} />
-        <div className="grid gap-5 p-5 sm:p-6 md:grid-cols-2">
+        <div className="grid gap-5 p-5 sm:p-6 md:grid-cols-2 flex-1 content-center items-center">
           <img src={serviceImage(svc)} alt={`${svc.title} illustration`} loading="lazy" className="w-full rounded-xl border border-google-gray-100 bg-google-gray-50" />
           <div>
             <h3 className="mb-1 text-xl font-bold text-google-teal-dark">{svc.title}</h3>

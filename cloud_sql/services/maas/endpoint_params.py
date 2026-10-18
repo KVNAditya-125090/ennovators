@@ -237,6 +237,7 @@ PARAMS: Dict[str, str] = {
     "bid/ai/finalize/handoff": "bid_id*:id, final_price*:num",
     "bid/ai/decision/accept": "bid_id*:id",
     "bid/ai/decision/reject": "bid_id*:id, reason",
+    "bid/ai/pending/list": "status:enum(pending|confirmed|rejected|all)",
     "bid/human/start": "product_id*:id, offer_price*:num",
     "bid/human/offer/respond": "bid_id*:id, response*:enum(accept|counter|reject), price:num, message",
     "bid/human/counter/customer": "bid_id*:id, price*:num",

@@ -67,6 +67,7 @@ export const FEATURE_PAGE = {
   "/paas/offline-sale/record/v1": "paas/orders",
   "/paas/lifecycle/record/read/v1": "paas/products",
   "/paas/bid/rules/ai-limits/set/v1": "paas/bidding",
+  "/paas/bid/ai/pending/list/v1": "paas/bidding",
   "/paas/bid/ai/decision/accept/v1": "paas/bidding",
   "/paas/bid/ai/decision/reject/v1": "paas/bidding",
   "/paas/bid/human/offer/respond/v1": "paas/bidding",

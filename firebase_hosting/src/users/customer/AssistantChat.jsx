@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, Mic, Square } from 'lucide-react';
+import { useSettings } from '../../settings/SettingsProvider';
+import { speak, stopSpeaking, listen } from '../../settings/speech';
 import { ErrorNote, FIELD } from '../consumer/ui';
 
 // A conversation with the assistant of the current service, in place of four separate text/voice forms.
@@ -18,28 +20,46 @@ export default function AssistantChat({ service, call, can }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const session = useRef(undefined);
+  const { t, language, speech, modes, canListen } = useSettings();
+  const [listening, setListening] = useState(false);
+  const stopListening = useRef(null);
+  const voiceIn = (modes.s2t || modes.s2s) && canListen;
   const end = useRef(null);
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'nearest' }); }, [thread, busy]);
 
   if (!spec || !can(spec.path)) {
     return <div className="py-6 text-center text-base text-google-gray-600">Typed chat is not switched on for this assistant.</div>;
   }
-  const send = async (message) => {
+  const send = async (message, viaVoice = false) => {
     const q = message.trim();
     if (!q || busy) return;
-    setThread((t) => [...t, { from: 'you', text: q }]);
+    setThread((th) => [...th, { from: 'you', text: q }]);
     setText('');
     setBusy(true);
     setError('');
     try {
-      const data = await call(spec.path, { [spec.field]: q, ...(session.current ? { session_id: session.current } : {}) });
+      const data = await call(spec.path, { [spec.field]: q, language, ...(session.current ? { session_id: session.current } : {}) });
       if (data.session_id) session.current = data.session_id;
-      setThread((t) => [...t, { from: 'assistant', text: data.reply || data.answer || data.message || 'Done.', actions: data.suggested_actions }]);
+      const reply = data.reply || data.answer || data.message || 'Done.';
+      setThread((th) => [...th, { from: 'assistant', text: reply, actions: data.suggested_actions }]);
+      // an answer is read aloud when the person chose it for the way they asked: text to speech, or speech to speech
+      if (viaVoice ? modes.s2s : modes.t2s) speak(reply, speech);
     } catch (err) {
       setError(err.message || 'The assistant could not answer.');
     } finally {
       setBusy(false);
     }
+  };
+  const toggleListening = () => {
+    if (listening) { stopListening.current?.(); return; }
+    stopSpeaking();
+    setError('');
+    setListening(true);
+    stopListening.current = listen(speech, {
+      onResult: (said) => send(said, true),
+      onEnd: () => setListening(false),
+      onError: () => { setListening(false); setError(t('settings.unsupported_listen')); }
+    });
   };
   const lastActions = thread.length && thread[thread.length - 1].from === 'assistant' ? thread[thread.length - 1].actions : null;
   return (
@@ -47,13 +67,13 @@ export default function AssistantChat({ service, call, can }) {
       <div className="mb-3 flex min-h-[16rem] max-h-[28rem] flex-1 flex-col gap-3 overflow-y-auto" aria-live="polite">
         {thread.length === 0 && (
           <div className="m-auto max-w-sm text-center text-sm text-google-gray-500">
-            <Sparkles className="mx-auto mb-2 h-6 w-6 text-google-blue" />Ask a question to get started.
+            <Sparkles className="mx-auto mb-2 h-6 w-6 text-google-blue" />{t('assistant.start')}
           </div>
         )}
         {thread.map((m, i) => (
           <div key={i} className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-base ${m.from === 'you' ? 'self-end bg-google-blue text-white' : 'self-start bg-google-gray-100 text-google-gray-900'}`}>{m.text}</div>
         ))}
-        {busy && <div className="self-start rounded-2xl bg-google-gray-100 px-4 py-2 text-sm text-google-gray-500">Thinking...</div>}
+        {busy && <div className="self-start rounded-2xl bg-google-gray-100 px-4 py-2 text-sm text-google-gray-500">{t('assistant.thinking')}</div>}
         <div ref={end} />
       </div>
       {lastActions?.length > 0 && (
@@ -63,8 +83,14 @@ export default function AssistantChat({ service, call, can }) {
       )}
       <ErrorNote error={error} />
       <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="flex gap-2">
-        <input className={FIELD} aria-label="Your message" placeholder="Type your question" value={text} onChange={(e) => setText(e.target.value)} />
-        <button type="submit" disabled={busy || !text.trim()} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg google-btn-gradient px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Send className="h-4 w-4" />Send</button>
+        <input className={FIELD} aria-label="Your message" placeholder={t('assistant.placeholder')} value={text} onChange={(e) => setText(e.target.value)} />
+        <button type="submit" disabled={busy || !text.trim()} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg google-btn-gradient px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Send className="h-4 w-4" />{t('assistant.send')}</button>
+        {voiceIn && (
+          <button type="button" onClick={toggleListening} aria-pressed={listening} aria-label={listening ? t('assistant.stop') : t('assistant.speak')}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold ${listening ? 'border-google-red bg-google-red-light text-google-red' : 'border-google-gray-300 text-google-gray-800 hover:bg-google-gray-50'}`}>
+            {listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}{listening ? t('assistant.listening') : t('assistant.speak')}
+          </button>
+        )}
       </form>
     </section>
   );

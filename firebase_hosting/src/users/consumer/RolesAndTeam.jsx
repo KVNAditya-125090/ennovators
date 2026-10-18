@@ -24,7 +24,7 @@ function Access({ role, onChanged }) {
     <div className="space-y-3">
       <ErrorNote error={error || act.error} />
       <div>
-        <div className="text-base font-semibold text-google-gray-900 mb-2">Allowed now <span className="font-normal text-google-gray-500">• {allowed.length}</span></div>
+        <div className="text-base font-semibold text-google-gray-900 mb-2">Allowed now <span className="font-normal text-google-gray-500">• {data ? allowed.length : '...'}</span></div>
         <div className="flex flex-wrap gap-2">
           {allowed.map((e) => (
             <span key={e.path} className="inline-flex items-center gap-1.5 rounded-full bg-google-green-light pl-3 pr-2 py-1 text-sm font-medium text-google-gray-900">
@@ -32,7 +32,8 @@ function Access({ role, onChanged }) {
               {revocable && <button aria-label={`Stop allowing: ${e.description}`} disabled={act.busy} onClick={() => act.run('/maas/role/permission/revoke/v1', { role_id: role.role_id, endpoint_path: e.path })} className="text-google-gray-600 hover:text-google-red"><X className="h-3.5 w-3.5" /></button>}
             </span>
           ))}
-          {allowed.length === 0 && <span className="text-base text-google-gray-500">This role cannot do anything yet. Add features below.</span>}
+          {!data && !error && <span className="text-base text-google-gray-500">Loading...</span>}
+          {data && allowed.length === 0 && <span className="text-base text-google-gray-500">This role cannot do anything yet. Add features below.</span>}
         </div>
       </div>
       {editable && (
@@ -105,7 +106,7 @@ function RoleDetail({ role, sent, canLog, onChanged }) {
   return (
     <div>
       <Tabs tabs={tabs} value={current} onChange={setTab} />
-      {current === 'access' && <Access role={role} onChanged={onChanged} />}
+      {current === 'access' && <Access key={role.role_id} role={role} onChanged={onChanged} />}
       {current === 'log' && (sent.length === 0 ? <Empty>Nothing has happened to this role yet.</Empty> : (
         <div className="divide-y divide-google-gray-100 text-base text-google-gray-700">
           {sent.map((m, i) => <div key={i} className="py-2.5 flex gap-4"><span className="text-sm text-google-gray-500 whitespace-nowrap pt-0.5">{m.at}</span><span>{m.message}{m.actor && <span className="text-google-gray-500"> — by {m.actor}</span>}</span></div>)}

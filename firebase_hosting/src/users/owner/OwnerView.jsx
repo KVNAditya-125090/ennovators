@@ -354,7 +354,7 @@ function AccountHeader({ detail }) {
           <span className="text-xs text-google-gray-500">Account status</span>
           <span className={`google-pill ${c.status === 'Active' ? 'bg-google-green-light text-google-green' : 'bg-google-gray-100 text-google-gray-600'}`}>{c.status}</span>
         </div>
-        {detail.profile && <div className="text-sm text-google-gray-600 mt-1.5">Member since <span className="font-semibold text-google-gray-900">{detail.profile.company.joined}</span></div>}
+        {detail.profile?.company?.joined && <div className="text-sm text-google-gray-600 mt-1.5">Member since <span className="font-semibold text-google-gray-900">{detail.profile.company.joined}</span></div>}
       </div>
     </div>
   );
@@ -368,26 +368,27 @@ function ProfileCard({ detail }) {
         {detail.profile && (
           <section className="google-card p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
+            {/* a workspace may not have contact or billing details yet: show only what it has */}
             <Facts align="left" title="Company" rows={[
-              ['Legal name', detail.profile.company.legal_name],
-              ['Industry', detail.profile.company.industry],
-              ['Address', detail.profile.company.address],
-              ['Website', detail.profile.company.website]
-            ]} />
-            <Facts align="center" title="Contact" rows={[
+              ['Legal name', detail.profile.company?.legal_name ?? c.name],
+              ['Industry', detail.profile.company?.industry],
+              ['Address', detail.profile.company?.address],
+              ['Website', detail.profile.company?.website]
+            ].filter(([, v]) => v)} />
+            {detail.profile.contact && <Facts align="center" title="Contact" rows={[
               ['Name', detail.profile.contact.name],
               ['Role', detail.profile.contact.title],
               ['Department', detail.profile.contact.department],
               ['Mobile number', detail.profile.contact.phone],
-              ['Email', <a key="mail" href={`mailto:${detail.profile.contact.email}`} className="text-google-teal hover:underline [overflow-wrap:anywhere]">{detail.profile.contact.email}</a>],
+              ['Email', detail.profile.contact.email && <a key="mail" href={`mailto:${detail.profile.contact.email}`} className="text-google-teal hover:underline [overflow-wrap:anywhere]">{detail.profile.contact.email}</a>],
               ['Working hours', detail.profile.contact.working_hours]
-            ]} />
-            <Facts align="right" title="Billing" rows={[
+            ].filter(([, v]) => v)} />}
+            {detail.profile.billing && <Facts align="right" title="Billing" rows={[
               ['Plan', detail.profile.billing.plan],
               ['Billing cycle', detail.profile.billing.billing_cycle],
-              ['Payment status', <span key="pay" className={`google-pill ${PAYMENT_PILLS[detail.profile.billing.payment_status] || ''}`}>{detail.profile.billing.payment_status}</span>],
-              ['Next invoice', formatDate(detail.profile.billing.next_invoice)]
-            ]} />
+              ['Payment status', detail.profile.billing.payment_status && <span key="pay" className={`google-pill ${PAYMENT_PILLS[detail.profile.billing.payment_status] || ''}`}>{detail.profile.billing.payment_status}</span>],
+              ['Next invoice', detail.profile.billing.next_invoice && formatDate(detail.profile.billing.next_invoice)]
+            ].filter(([, v]) => v)} />}
           </div>
           </section>
         )}

@@ -1,5 +1,5 @@
 {
-  "name": "auracommerce-360-frontend",
+  "name": "lakshmi-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "firebase": "^13.0.0",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -23,4 +24,3 @@
     "vite": "^4.4.5"
   }
 }
-

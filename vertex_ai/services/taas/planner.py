@@ -18,6 +18,7 @@ import itertools
 import math
 import re
 from typing import Any, Dict, List, Optional
+from firestore import store
 from cloud_run.ids import new_id
 
 IST = datetime.timedelta(hours=5, minutes=30)
@@ -50,7 +51,7 @@ PATHS = [
 OBJECTIVE_METRIC = {"shortest": "distance_km", "fastest": "hours", "cheapest": "cost_usd", "greenest": "co2_kg"}
 OBJECTIVE_WORD = {"shortest": "the shortest distance", "fastest": "the fastest arrival", "cheapest": "the lowest cost", "greenest": "the lowest emissions"}
 
-DECISIONS: Dict[str, Dict[str, Any]] = {}
+DECISIONS = store.KeyedDict("decisions")  # kept in Firestore, under the consumer
 _ids = itertools.count(1)
 SOURCES = ["Shipment origin and destination", "Road distance between cities", "Vehicle speed, cost and emissions profiles"]
 
@@ -69,8 +70,33 @@ def _city(place: str) -> Optional[str]:
                 return name
     return None
 
-def _km(a: str, b: str) -> float:
-    (la1, lo1), (la2, lo2) = CITIES[a], CITIES[b]
+BROAD_PLACES = {"country", "administrative_area_level_1", "administrative_area_level_2", "political"}
+_places: Dict[str, tuple] = {}  # places found on Google Maps, kept while the service runs, so each is looked up once
+
+def _point(place: str) -> Optional[tuple]:
+    """(name, (lat, lng)) for a place: a city in the table above, else found on Google Maps, else None."""
+    city = _city(place)
+    if city:
+        return city.title(), CITIES[city]
+    text = (place or "").strip()
+    inside = re.findall(r"\(([^)]+)\)", text)
+    query = inside[-1] if inside else text
+    if not query:
+        return None
+    key = query.lower()
+    if key not in _places:
+        try:
+            from maps import geocoding
+            hit = geocoding.geocode(query, region="in", country="in")
+            # Google answers an unknown or too-general name (a state, a country) with the middle of that area: that is not a place to stop at
+            if hit and not set(hit.get("types", [])) <= BROAD_PLACES:
+                _places[key] = (query.title(), (hit["lat"], hit["lng"]))
+        except Exception:
+            pass  # Maps off or over its daily limit: the caller falls back and says so
+    return _places.get(key)
+
+def _km(a: tuple, b: tuple) -> float:
+    (la1, lo1), (la2, lo2) = a, b
     p1, p2 = math.radians(la1), math.radians(la2)
     d = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lo2 - lo1) / 2) ** 2
     straight = 6371 * 2 * math.asin(math.sqrt(d))
@@ -78,15 +104,20 @@ def _km(a: str, b: str) -> float:
 
 def _legs(shipment: Dict[str, Any], stops: Optional[List[str]]) -> Dict[str, Any]:
     names = [shipment.get("origin", "")] + list(stops or []) + [shipment.get("destination", "")]
-    cities, assumed = [], []
-    for n in names:
-        c = _city(n)
-        if c is None:
-            c = "bengaluru"
+    cities, points, assumed, skipped = [], [], [], []
+    last = len(names) - 1
+    for i, n in enumerate(names):
+        found = _point(n)
+        if found is None and 0 < i < last:
+            skipped.append(n or "an empty stop")  # an extra stop we cannot find is left out, not guessed
+            continue
+        if found is None:
+            found = ("Bengaluru", CITIES["bengaluru"])
             assumed.append(n or "an empty place")
-        cities.append(c)
-    km = sum(_km(a, b) for a, b in zip(cities, cities[1:]))
-    return {"cities": [c.title() for c in cities], "km": km, "assumed": assumed}
+        cities.append(found[0])
+        points.append(found[1])
+    km = sum(_km(a, b) for a, b in zip(points, points[1:]))
+    return {"cities": cities, "km": km, "assumed": assumed, "skipped": skipped}
 
 def _trip(vehicle: Dict[str, Any], km: float, path: Dict[str, Any]) -> Dict[str, Any]:
     dist = km * path["dist"]
@@ -161,6 +192,8 @@ def recommend_route(shipment: Dict[str, Any], objective: Optional[str], stops: O
         factors.append(f"Covers {len(legs['cities']) - 2} extra stop(s) in the order given.")
     if legs["assumed"]:
         factors.append("Location not recognised, assumed Bengaluru: " + ", ".join(legs["assumed"]) + ".")
+    if legs["skipped"]:
+        factors.append("Extra stop left out because it is not a town or city we could find: " + ", ".join(legs["skipped"]) + ".")
     summary = f"Take the {best['name']} ({best['distance_km']} km, about {best['hours']} h, ${best['cost_usd']}, {best['co2_kg']} kg CO2): it gives {OBJECTIVE_WORD[objective]}."
     return _save("route", shipment, options, best["name"], {"summary": summary, "factors": factors, "confidence": 0.7 if legs["assumed"] else 0.85}, {"objective": objective})
 
@@ -226,6 +259,8 @@ def predict_eta(shipment: Dict[str, Any]) -> Dict[str, Any]:
     factors.insert(0, f"{vehicle['name']} on the {path['name']}: {trip['distance_km']} km, about {trip['hours']} h on the road.")
     if legs["assumed"]:
         factors.append("Location not recognised, assumed Bengaluru: " + ", ".join(legs["assumed"]) + ".")
+    if legs["skipped"]:
+        factors.append("Extra stop left out because it is not a town or city we could find: " + ", ".join(legs["skipped"]) + ".")
     confidence = round(max(0.55, 0.9 - legs["km"] / 5000 - (0.1 if legs["assumed"] else 0)), 2)
     fmt = lambda d: d.strftime("%a %d %b, %H:%M")
     options = [{"name": "Predicted", "eta": fmt(arrive), "earliest": fmt(arrive - spread), "latest": fmt(arrive + spread)}]

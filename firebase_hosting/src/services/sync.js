@@ -1,3 +1,4 @@
+import { apiUrl } from '../api';
 import { useState, useEffect } from 'react';
 
 // Keeps the three portals in step. The platform counts every change that can alter access or the interface
@@ -11,7 +12,7 @@ const listeners = new Set();
 
 async function poll() {
   try {
-    const res = await fetch('/api/v1/sync/revision', { cache: 'no-store' });
+    const res = await fetch(apiUrl('/api/v1/sync/revision'), { cache: 'no-store' });
     if (!res.ok) return;
     const { revision: next } = await res.json();
     const moved = revision !== null && next !== revision;

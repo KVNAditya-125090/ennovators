@@ -7,7 +7,7 @@ from typing import Dict, Any
 import uuid
 
 class CloudStorageSaaS:
-    def __init__(self, bucket: str = "auracommerce-360-media"):
+    def __init__(self, bucket: str = "lakshmi-media"):
         self.bucket = bucket
         self.provider_status = "Mock Driver (Offline / Keyless Mode)"
 

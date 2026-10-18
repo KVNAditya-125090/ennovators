@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Navigation, Truck, CalendarClock, Clock, Check, PencilLine, Info } from 'lucide-react';
 import { useConsumer, useToast, ErrorNote, Btn, Pill, Chips, FIELD, label } from './ui';
+import { DispatchMap, mapsConfigured } from '../../maps';
 
 // AI delivery planning for one shipment: route, vehicle, delivery time and delivery slots.
 // Each recommendation comes with its reasons. Staff accept it, or override it with a reason (kept with the shipment).
@@ -10,6 +11,7 @@ const P = {
   vehicle: '/taas/vehicle/recommend/v1',
   eta: '/taas/delivery/eta/predict/v1',
   slot: '/taas/delivery/slot/recommend/v1',
+  road: '/taas/route/shortest/calculate/v1',
   accept: '/taas/recommendation/accept/v1',
   override: '/taas/recommendation/override/v1'
 };
@@ -93,7 +95,7 @@ function Part({ part, shipment, onApplied }) {
       {part.key === 'route' && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Chips value={objective} onChange={setObjective} options={['greenest', 'shortest', 'fastest', 'cheapest'].map((o) => ({ value: o, label: label(o) }))} />
-          <input className={`${FIELD} w-64`} value={stops} onChange={(e) => setStops(e.target.value)} placeholder="Extra stops, comma separated" aria-label="Extra stops, comma separated" />
+          <input className={`${FIELD} w-64`} value={stops} onChange={(e) => setStops(e.target.value)} placeholder="Extra stops: towns or cities, separated by commas (Thane, Nashik)" aria-label="Extra stops, comma separated" />
         </div>
       )}
       {part.key === 'vehicle' && (
@@ -148,6 +150,39 @@ function Part({ part, shipment, onApplied }) {
   );
 }
 
+// The road route from where the shipment starts to the city it is going to, from Google Maps (an estimate when Maps is off)
+const city = (text) => (/\(([^)]+)\)\s*$/.exec(text || '') || [])[1] || text;
+function RoadRoute({ shipment }) {
+  const { can, call } = useConsumer();
+  const [route, setRoute] = useState(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!can(P.road)) return null;
+  const show = async () => {
+    setBusy(true); setError('');
+    try { setRoute(await call(P.road, { origin: { address: shipment.origin }, destination: { address: city(shipment.destination) } })); }
+    catch (err) { setError(err.message); } finally { setBusy(false); }
+  };
+  return (
+    <section className="rounded-2xl border border-google-gray-200 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div><div className="text-base font-semibold text-google-gray-900">Road route</div><div className="text-sm text-google-gray-500">Real road distance and time between the two places</div></div>
+        <Btn kind="primary" disabled={busy} onClick={show}><Navigation className="h-3.5 w-3.5 inline mr-1" />{route ? 'Refresh' : 'Show road route'}</Btn>
+      </div>
+      <div className="mt-3"><ErrorNote error={error} /></div>
+      {route && (
+        <div className="mt-2 space-y-3">
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-base text-google-gray-900">
+            <span><strong>{route.distance_km}</strong> km</span><span><strong>{route.duration_minutes}</strong> min by road</span>
+            <span className="text-sm text-google-gray-500">Source: {route.source}</span>
+          </div>
+          {route.polyline && mapsConfigured() && <DispatchMap polyline={route.polyline} height={300} />}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function DeliveryPlanner({ shipment, onClose, onApplied }) {
   const { can } = useConsumer();
   const plan = [['Route', shipment.route], ['Vehicle', shipment.vehicle], ['Arrives', shipment.eta], ['Slot', shipment.delivery_slot]];
@@ -165,6 +200,7 @@ export default function DeliveryPlanner({ shipment, onClose, onApplied }) {
           {plan.map(([k, v]) => <div key={k} className="rounded-xl bg-google-gray-50 px-3 py-2"><div className="text-xs uppercase tracking-wider text-google-gray-500">{k}</div><div className="text-sm font-semibold text-google-gray-900">{v || 'Not set'}</div></div>)}
         </div>
         <div className="mt-4 space-y-4">
+          <RoadRoute shipment={shipment} />
           {PARTS.map((part) => <Part key={part.key} part={part} shipment={shipment} onApplied={onApplied} />)}
           {!PLANNER_PATHS.some(can) && <p className="text-base text-google-gray-600">Your workspace or role has no AI delivery planning features.</p>}
         </div>

@@ -32,6 +32,7 @@ from cloud_run.ids import is_uuid
 from cloud_run.handlers import HANDLERS
 from firestore.users.consumer import operations as consumer_ops
 from cloud_sql.services.maas.endpoints import endpoint_registry
+from firestore import store
 
 router = APIRouter(prefix="/api", tags=["Gate"])
 
@@ -118,6 +119,7 @@ def _handler(endpoint: Dict[str, Any]):
         except HTTPException as refusal:
             endpoint_registry.record_audit(x_tenant_id, endpoint["path"], endpoint["method"], refusal.status_code, refusal.detail["code"])
             raise
+        store.set_tenant(tenant["tenant_id"])
         bigquery_maas.record_call(x_tenant_id, endpoint["path"])
         body = None
         if not endpoint_is_read(request.method):

@@ -15,7 +15,7 @@ export const SERVICES = [
       prefixes: ['/paas/bid', '/paas/auction'] },
     { key: 'rewards', label: 'Rewards & reviews', subtitle: 'Green credits, buy-back value, reviews and your personalization',
       prefixes: ['/paas/green-credits', '/paas/future-value', '/paas/feedback', '/paas/personalization'] },
-    { key: 'stores', label: 'Stores', subtitle: 'Store locations, and the nearest store to you for pickup and drop-off', from: 'maas', prefixes: ['/maas/location'] },
+    { key: 'stores', label: 'Stores', subtitle: 'Store locations, and the nearest store to you for pickup and drop-off', from: 'maas', screen: 'stores', prefixes: ['/maas/location'] },
     { key: 'assistant', label: 'Shopping assistant', subtitle: 'Ask about products, prices and bids', screen: 'assistant', prefixes: ['/paas/assistant'] }
   ] },
   { key: 'taas', label: 'Delivery', pages: [

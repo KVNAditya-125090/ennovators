@@ -48,6 +48,8 @@ function Products() {
     { name: 'description', label: 'Description', type: 'textarea' },
     { name: 'media', label: 'Photos and videos', type: 'media' }
   ];
+  // the form's Condition list holds new, refurbished and used; a product's own text ("Certified Refurbished (Grade A)") starts on the matching one
+  const conditionKey = (text = '') => { const t = text.toLowerCase(); return t.includes('refurb') ? 'refurbished' : t.includes('used') ? 'used' : t.includes('new') ? 'new' : ''; };
   // the form holds pictures and videos as one list; the endpoints take them as two
   const withMedia = ({ media = [], ...rest }) => ({ ...rest, images: media.filter((m) => m.kind === 'image').map((m) => m.url), videos: media.filter((m) => m.kind === 'video').map((m) => m.url) });
   const mediaOf = (p) => [...(p.images ?? (p.image_url ? [p.image_url] : [])).map((url) => ({ url, kind: 'image' })), ...(p.videos ?? []).map((url) => ({ url, kind: 'video' }))];
@@ -77,7 +79,7 @@ function Products() {
           { key: 'u', header: 'Condition', render: (p) => <span className="text-sm text-google-gray-600">{p.condition}</span> },
           { key: 'r', header: 'Price', render: (p) => <span className="font-semibold text-google-gray-900">{money(p.retail_price)}</span> },
           { key: 's', header: 'In stock', render: (p) => <StockCell product={p} editable={can('/paas/inventory/stock/update/v1')} onSave={(quantity) => act.run('/paas/inventory/stock/update/v1', { sku: p.sku, quantity }, 'Stock updated')} /> },
-          { key: 'a', header: '', className: 'text-right', render: (p) => (
+          { key: 'a', header: '', className: 'text-right', sticky: true, render: (p) => (
             <RowMenu items={[
               { label: 'Edit details', hidden: !can('/paas/catalog/product/update/v1'), onClick: () => open({ kind: 'edit', product: p }) },
               { label: 'Adjust stock', hidden: !can('/paas/inventory/stock/adjust/v1'), onClick: () => open({ kind: 'adjust', product: p }) },
@@ -88,7 +90,7 @@ function Products() {
       </Section>
       {dialog?.kind === 'new' && <FormModal title="Add product" fields={createFields} submitLabel="Add product" error={act.error} busy={act.busy} onClose={() => setDialog(null)}
         onSubmit={async (v) => Boolean(await act.run('/paas/catalog/product/create/v1', withMedia(v), 'Product added'))} />}
-      {dialog?.kind === 'edit' && <FormModal title={`Edit ${dialog.product.name}`} fields={editFields} initial={{ ...dialog.product, category_id: dialog.product.category, price: dialog.product.retail_price, media: mediaOf(dialog.product) }} error={act.error} busy={act.busy} onClose={() => setDialog(null)}
+      {dialog?.kind === 'edit' && <FormModal title={`Edit ${dialog.product.name}`} fields={editFields} initial={{ ...dialog.product, category_id: dialog.product.category, price: dialog.product.retail_price, condition: conditionKey(dialog.product.condition), media: mediaOf(dialog.product) }} error={act.error} busy={act.busy} onClose={() => setDialog(null)}
         onSubmit={async (v) => Boolean(await act.run('/paas/catalog/product/update/v1', { ...withMedia(v), product_id: dialog.product.id }, 'Product saved'))} />}
       {dialog?.kind === 'adjust' && <FormModal title={`Adjust stock: ${dialog.product.name}`} fields={adjustFields} submitLabel="Adjust" error={act.error} busy={act.busy} onClose={() => setDialog(null)}
         onSubmit={async (v) => Boolean(await act.run('/paas/inventory/stock/adjust/v1', { ...v, sku: dialog.product.sku }, 'Stock adjusted'))} />}
@@ -132,7 +134,7 @@ function Orders() {
 
 function Forecast() {
   const products = useLoad('/paas/catalog/product/read/v1');
-  const [sku, setSku] = useState('SKU-WATCH-G3');
+  const [sku, setSku] = useState('');
   const { data, error } = useLoad('/paas/forecast/demand/read/v1', { sku });
   const days = data?.daily_forecast?.slice(0, 14) ?? [];
   const peak = Math.max(60, ...days.map((d) => d.predicted_demand));
@@ -142,12 +144,13 @@ function Forecast() {
       <PageHeader title="Demand Forecast" subtitle="Expected demand for the next two weeks, so you restock in time"
         action={<Dropdown ariaLabel="Product" value={sku} onChange={setSku} className="min-w-[14rem]" options={(products.data?.products ?? [{ sku, name: sku }]).map((x) => ({ value: x.sku, label: x.name }))} />} />
       <ErrorNote error={error} />
-      {data && (
+      {data && days.length === 0 && <p className="py-6 text-base text-google-gray-600">There is no sales history for this product yet, so there is nothing to forecast. Pick another product, or come back once it has sold.</p>}
+      {data && days.length > 0 && (
         <>
           <Kpis>
             <Kpi icon={ShoppingBag} tone="blue" label="Expected in 14 days" value={total.toLocaleString()} hint="Units" />
-            <Kpi icon={Clock} tone="yellow" label="Busiest day" value={Math.max(...days.map((d) => d.predicted_demand))} hint="Units" />
-            <Kpi icon={AlertTriangle} tone="red" label="Reorder when stock hits" value={`${data.recommended_reorder_point} units`} />
+            <Kpi icon={Clock} tone="yellow" label="Busiest day" value={days.length ? Math.max(...days.map((d) => d.predicted_demand)) : '-'} hint="Units" />
+            <Kpi icon={AlertTriangle} tone="red" label="Reorder when stock hits" value={data.recommended_reorder_point > 0 ? `${data.recommended_reorder_point} units` : 'Not enough sales yet'} hint={data.recommended_reorder_point > 0 ? undefined : 'Needs some sales history to work out'} />
           </Kpis>
           <Section title="Day by day">
             <div className="h-44 flex items-end gap-2 px-1">

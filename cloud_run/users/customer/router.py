@@ -2,6 +2,7 @@
 Customer Router - utilizes the services via the consumer (storefront, support, AI assistant).
 """
 
+import os
 from fastapi import APIRouter, Body, HTTPException
 from cloud_run.users.customer.schemas import QueryIn
 from typing import Dict, Any
@@ -10,14 +11,14 @@ from vertex_ai.users import customer as vertex_ai
 from cloud_storage.users import customer as cloud_storage
 from cloud_sql.services.maas import cloud_sql_maas
 from cloud_sql.services.maas.endpoints import endpoint_registry, SERVICE_ORDER
-from cloud_run.access import customer_may_use, customer_brand
+from cloud_run.access import customer_may_use, customer_brand, default_tenant_id
+from firestore import store
 from cloud_run.ids import passport_id
 
 router = APIRouter(prefix="/api/v1/customer", tags=["Customer"])
 
-# The consumer whose storefront the demo shopper shops with. A real customer registers with a consumer and
-# shops only within that consumer's brand; here there is one consumer, so the portal defaults to it.
-DEFAULT_CONSUMER = "GreenCycle Refurbishers"
+# A customer registers with a consumer and shops only within that consumer's brand, so no consumer is assumed.
+DEFAULT_CONSUMER = os.environ.get("DEFAULT_CONSUMER", "")
 
 # The catalog fields the Customer portal needs to render and run a feature
 _FIELDS = ("path", "service", "feature", "sub_category", "version", "actor", "category", "description", "method", "ai", "parameters")
@@ -35,14 +36,16 @@ def get_endpoints(tenant: str = DEFAULT_CONSUMER) -> Dict[str, Any]:
         if e["actor"] == "Customer" and customer_may_use(consumer["tenant_id"], e["path"]):
             services[e["service"]].append({k: e[k] for k in _FIELDS})
     return {"tenant_id": consumer["tenant_id"], "consumer": consumer["name"], "services": services,
-            "template": customer_brand(consumer["name"])}
+            "template": customer_brand(consumer["tenant_id"], consumer["name"])}
 
 @router.get("/storefront")
 def get_storefront() -> Dict[str, Any]:
-    return {
-        "products": [{**p, "passport_id": passport_id(p["id"])} for p in firestore.browse_catalog()],
-        "tickets": firestore.my_tickets()
-    }
+    """The public storefront of the default consumer. A shopper's own tickets come through the signed-in endpoints, never here."""
+    tenant = default_tenant_id()
+    if tenant is None:
+        return {"products": [], "tickets": []}
+    store.set_tenant(tenant)
+    return {"products": [{**p, "passport_id": passport_id(p["id"])} for p in firestore.browse_catalog() if not p.get("archived")], "tickets": []}
 
 @router.post("/queries", status_code=201)
 def send_query(query: QueryIn) -> Dict[str, Any]:

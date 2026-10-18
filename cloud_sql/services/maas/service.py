@@ -1,96 +1,146 @@
 """
 Cloud SQL (PostgreSQL) - MaaS (Management as a Service)
-Relational, multi-tenant system of record: tenants, users and RBAC roles.
+Relational, multi-tenant system of record: tenants, users and their sign-in accounts.
+Every function returns the same plain dicts the rest of the code already used.
 """
 
+import json
 from typing import Dict, Any, List, Optional
-import hashlib
-import hmac
 
-TENANTS = [
-    {"tenant_id": "5a9948a4-8637-5418-bb7d-544d070d9ac6", "name": "GreenCycle Refurbishers", "type": "Certified Refurbisher", "status": "Active", "users_count": 18}
-]
+from cloud_sql import db
+from cloud_run import auth
 
-USERS = [
-    {"user_id": "a92e3fbf-419f-5693-a479-1415c4d7271f", "name": "AIONOS", "email": "admin@auracommerce.io", "role": "Owner / Manager", "tenant": "Aura Eco Retail"},
-    {"user_id": "755606bc-31a4-5ada-b5dd-50741a50b150", "name": "Sarah Chen", "email": "seller@greencycle.com", "role": "Consumer / Root", "tenant": "GreenCycle Refurbishers"},
-    {"user_id": "5635f3c2-a835-58af-b4e8-8aa5444b0604", "name": "Marcus Vance", "email": "customer@gmail.com", "role": "Customer / Individual", "tenant": "Direct Shopper"},
-    {"user_id": "f349ae73-034e-5c4d-9d57-d141fde4c45a", "name": "Rahul Mehta", "email": "rahul@greencycle.com", "role": "Consumer / Manager", "tenant": "GreenCycle Refurbishers"},
-    {"user_id": "3501c2d0-3d4c-5b0d-b776-56dd2a068882", "name": "Priya Nair", "email": "priya@greencycle.com", "role": "Consumer / Dispatcher", "tenant": "GreenCycle Refurbishers"},
-    {"user_id": "d116c066-e773-5a93-9b7f-f5e434bf2747", "name": "Anika Rao", "email": "anika@greencycle.com", "role": "Consumer / Seller", "tenant": "GreenCycle Refurbishers"},
-    {"user_id": "908db58d-66ba-5c26-bad9-1081f3c5cf52", "name": "Neha Iyer", "email": "developer@auracommerce.io", "role": "Owner / Developer", "tenant": "Aura Eco Retail"},
-    {"user_id": "0ce37583-16e9-52cf-8631-5c9d578f3ebf", "name": "Karan Patel", "email": "operator@auracommerce.io", "role": "Owner / Operator", "tenant": "Aura Eco Retail"}
-]
+# Languages a person can choose, and the four ways to talk to an assistant:
+# t2t text in, text out   t2s text in, spoken answer   s2t spoken question, text answer   s2s spoken both ways
+LANGUAGES = ("en", "hi", "te", "ta", "kn", "mr", "bn", "gu", "ml")
+MODES = ("t2t", "t2s", "s2t", "s2s")
+DEFAULT_PREFERENCES = {"language": "en", "modes": {"t2t": True, "t2s": False, "s2t": False, "s2s": False}}
 
-# Each consumer's own profile data. All values are made-up samples; addresses use the reserved .example domain.
-TENANT_PROFILES = {
-    "5a9948a4-8637-5418-bb7d-544d070d9ac6": {
-        "company": {"legal_name": "GreenCycle Refurbishers LLP", "industry": "Refurbishment and repair", "location": "Pune, India", "address": "27 Baner Road, Pune, Maharashtra 411045, India", "website": "greencycle.example", "joined": "2026-02-18"},
-        "billing": {"plan": "Growth", "billing_cycle": "Monthly", "payment_status": "Paid", "next_invoice": "2026-11-01"},
-        "contact": {"name": "Sarah Chen", "title": "Operations Lead", "email": "sarah.chen@greencycle.example", "phone": "+91 20 5550 0102", "department": "Operations", "alt_phone": "+91 20 5550 0112", "preferred_contact": "Phone", "timezone": "IST (UTC+5:30)", "working_hours": "Mon-Sat, 10:00-19:00"},
-    },
-}
+PLATFORM = "Lakshmi"        # the "tenant" shown for Owner users, who belong to the platform and not to a consumer
+MAX_FAILED_SIGN_INS = 5
+LOCK_MINUTES = 15
 
-def _hash(password: str) -> str:
-    return hashlib.sha256(("auracommerce-demo:" + password).encode("utf-8")).hexdigest()
-
-# Demo accounts for preview mode. The account decides the portal; replace with real
-# sign-in (for example Firebase Authentication) before any production use.
-ACCOUNTS = {
-    "admin@auracommerce.io": {"password_hash": _hash("Owner@123"), "user_id": "a92e3fbf-419f-5693-a479-1415c4d7271f", "portal": "Owner"},
-    "seller@greencycle.com": {"password_hash": _hash("Seller@123"), "user_id": "755606bc-31a4-5ada-b5dd-50741a50b150", "portal": "Consumer"},
-    "customer@gmail.com": {"password_hash": _hash("Customer@123"), "user_id": "5635f3c2-a835-58af-b4e8-8aa5444b0604", "portal": "Customer"},
-    # The other Owner roles. For now each sees everything the Owner Manager sees; the per-role limits come later.
-    "developer@auracommerce.io": {"password_hash": _hash("Developer@123"), "user_id": "908db58d-66ba-5c26-bad9-1081f3c5cf52", "portal": "Owner"},
-    "operator@auracommerce.io": {"password_hash": _hash("Operator@123"), "user_id": "0ce37583-16e9-52cf-8631-5c9d578f3ebf", "portal": "Owner"},
-    # The other Consumer roles of GreenCycle (seller@greencycle.com above is its Root)
-    "rahul@greencycle.com": {"password_hash": _hash("Manager@123"), "user_id": "f349ae73-034e-5c4d-9d57-d141fde4c45a", "portal": "Consumer"},
-    "anika@greencycle.com": {"password_hash": _hash("Seller@123"), "user_id": "d116c066-e773-5a93-9b7f-f5e434bf2747", "portal": "Consumer"},
-    "priya@greencycle.com": {"password_hash": _hash("Dispatcher@123"), "user_id": "3501c2d0-3d4c-5b0d-b776-56dd2a068882", "portal": "Consumer"},
-}
+_TENANT = """SELECT t.tenant_id::text AS tenant_id, t.name, t.type, t.status,
+                    (SELECT count(*) FROM users u WHERE u.tenant_id = t.tenant_id)::int AS users_count
+             FROM tenants t"""
+_USER = """SELECT u.user_id::text AS user_id, u.name, u.email, u.role, coalesce(t.name, :platform) AS tenant, u.tenant_id::text AS tenant_id
+           FROM users u LEFT JOIN tenants t ON t.tenant_id = u.tenant_id"""
 
 class CloudSQLMaaS:
     def __init__(self):
-        self.provider_status = "Mock Driver (Offline / Keyless Mode)"
+        self.provider_status = "Cloud SQL (PostgreSQL)"
 
+    # ---- tenants and users ----
     def list_tenants(self) -> List[Dict[str, Any]]:
-        return TENANTS
-
-    def list_users(self) -> List[Dict[str, Any]]:
-        return USERS
-
-    def get_profile(self, tenant_id: str) -> Optional[Dict[str, Any]]:
-        profile = TENANT_PROFILES.get(tenant_id)
-        return None if profile is None else {group: dict(values) for group, values in profile.items()}
+        return db.rows(_TENANT + " ORDER BY t.created_at")
 
     def get_tenant(self, tenant_id: str) -> Optional[Dict[str, Any]]:
-        return next((t for t in TENANTS if t["tenant_id"] == tenant_id), None)
+        return db.one(_TENANT + " WHERE t.tenant_id = CAST(:id AS uuid)", id=tenant_id)
 
     def get_tenant_by_name(self, tenant_name: str) -> Optional[Dict[str, Any]]:
-        return next((t for t in TENANTS if t["name"] == tenant_name), None)
+        return db.one(_TENANT + " WHERE t.name = :name", name=tenant_name)
+
+    def list_users(self) -> List[Dict[str, Any]]:
+        return db.rows(_USER + " ORDER BY u.created_at", platform=PLATFORM)
+
+    def find_user(self, email: str) -> Optional[Dict[str, Any]]:
+        return db.one(_USER + " WHERE lower(u.email) = :email", email=email.strip().lower(), platform=PLATFORM)
 
     def list_members(self, tenant_name: str) -> List[Dict[str, Any]]:
-        return [u for u in USERS if u["tenant"] == tenant_name]
+        return db.rows(_USER + " WHERE t.name = :name ORDER BY u.created_at", name=tenant_name, platform=PLATFORM)
 
     def get_workspace(self, tenant_name: str) -> Optional[Dict[str, Any]]:
         """A tenant workspace with its team, for the consumers who run it."""
-        tenant = next((t for t in TENANTS if t["name"] == tenant_name), None)
+        tenant = self.get_tenant_by_name(tenant_name)
         if tenant is None:
             return None
-        return {"tenant": tenant, "members": [u for u in USERS if u["tenant"] == tenant_name]}
+        return {"tenant": tenant, "members": self.list_members(tenant_name)}
 
-    def authenticate(self, email: str, password: str) -> Optional[Dict[str, Any]]:
-        """Returns the signed-in user, with the portal their account belongs to, or None."""
-        account = ACCOUNTS.get(email.strip().lower())
-        supplied = _hash(password)
-        # compare even for unknown emails so response time does not reveal which emails exist
-        expected = account["password_hash"] if account else _hash("")
-        if not hmac.compare_digest(supplied, expected) or account is None:
+    def get_profile(self, tenant_id: str) -> Optional[Dict[str, Any]]:
+        row = db.one("SELECT profile FROM tenants WHERE tenant_id = CAST(:id AS uuid)", id=tenant_id)
+        if row is None or not row["profile"]:
             return None
-        user = next(u for u in USERS if u["user_id"] == account["user_id"])
-        return {"user_id": user["user_id"], "name": user["name"], "email": user["email"],
-                "role": account["portal"], "tenant": user["tenant"],
+        profile = row["profile"] if isinstance(row["profile"], dict) else json.loads(row["profile"])
+        return {group: dict(values) for group, values in profile.items()}
+
+    # ---- personal settings: language and how to talk to the assistants ----
+    def get_preferences(self, email: str) -> Dict[str, Any]:
+        row = db.one("SELECT preferences FROM users WHERE lower(email) = :e", e=email.strip().lower())
+        saved = {} if row is None else (row["preferences"] if isinstance(row["preferences"], dict) else json.loads(row["preferences"] or "{}"))
+        return {"language": saved.get("language", "en"), "modes": {**DEFAULT_PREFERENCES["modes"], **saved.get("modes", {})}}
+
+    def set_preferences(self, email: str, language: str, modes: Dict[str, bool]) -> Dict[str, Any]:
+        """Saves a person's language and modes. Raises ValueError for a language or mode that does not exist."""
+        if language not in LANGUAGES:
+            raise ValueError("That language is not available.")
+        unknown = set(modes) - set(MODES)
+        if unknown:
+            raise ValueError("Unknown mode: " + ", ".join(sorted(unknown)))
+        clean = {m: bool(modes.get(m, DEFAULT_PREFERENCES["modes"][m])) for m in MODES}
+        clean["t2t"] = True  # reading and typing always stays available
+        db.run("UPDATE users SET preferences = CAST(:p AS jsonb) WHERE lower(email) = :e", p=json.dumps({"language": language, "modes": clean}), e=email.strip().lower())
+        return {"language": language, "modes": clean}
+
+    # ---- creating them ----
+    def create_tenant(self, name: str, type_: str = "", profile: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        from sqlalchemy import text
+        with db.tx() as conn:  # a write needs a transaction: db.one and db.rows only read
+            tenant_id = conn.execute(text("""INSERT INTO tenants (name, type, profile) VALUES (:name, :type, CAST(:profile AS jsonb))
+                                             RETURNING tenant_id::text"""),
+                                     {"name": name, "type": type_, "profile": json.dumps(profile or {})}).scalar()
+        return self.get_tenant(tenant_id)
+
+    def create_account(self, name: str, email: str, role: str, portal: str, password: str,
+                       tenant_id: Optional[str] = None, must_change_password: bool = False) -> Dict[str, Any]:
+        """Makes a user and the account they sign in with. Raises ValueError for a weak password or a used email."""
+        problem = auth.password_problem(password)
+        if problem:
+            raise ValueError(problem)
+        email = email.strip().lower()
+        if self.find_user(email):
+            raise ValueError(f"{email} already has an account")
+        with db.tx() as conn:
+            from sqlalchemy import text
+            user_id = conn.execute(text("""INSERT INTO users (name, email, role, tenant_id)
+                                           VALUES (:name, :email, :role, CAST(:tenant AS uuid)) RETURNING user_id::text"""),
+                                   {"name": name, "email": email, "role": role, "tenant": tenant_id}).scalar()
+            conn.execute(text("""INSERT INTO accounts (email, password_hash, user_id, portal, must_change_password)
+                                 VALUES (:email, :hash, CAST(:uid AS uuid), :portal, :must)"""),
+                         {"email": email, "hash": auth.hash_password(password), "uid": user_id, "portal": portal, "must": must_change_password})
+        return self.find_user(email)
+
+    # ---- signing in ----
+    def authenticate(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+        """The signed-in user with the portal their account belongs to, or None. Five wrong passwords lock the account for 15 minutes."""
+        email = email.strip().lower()
+        account = db.one("""SELECT password_hash, portal, active, must_change_password, (locked_until IS NOT NULL AND locked_until > now()) AS locked
+                            FROM accounts WHERE email = :email""", email=email)
+        # always check a hash, so a wrong email takes as long as a wrong password
+        ok = auth.verify_password(password, account["password_hash"] if account else auth.DUMMY_HASH)
+        if account is None or not account["active"] or account["locked"]:
+            return None
+        if not ok:
+            db.run("""UPDATE accounts SET failed_attempts = failed_attempts + 1,
+                      locked_until = CASE WHEN failed_attempts + 1 >= :max THEN now() + make_interval(mins => :mins) ELSE locked_until END
+                      WHERE email = :email""", email=email, max=MAX_FAILED_SIGN_INS, mins=LOCK_MINUTES)
+            return None
+        db.run("UPDATE accounts SET failed_attempts = 0, locked_until = NULL, last_login = now() WHERE email = :email", email=email)
+        user = self.find_user(email)
+        if user is None:
+            return None
+        return {"user_id": user["user_id"], "name": user["name"], "email": user["email"], "role": account["portal"],
+                "tenant": user["tenant"], "must_change_password": account["must_change_password"], "preferences": self.get_preferences(email),
                 # sub-role shown beside the portal: Owner (Manager / Developer / Operator), Consumer (as registered)
                 "department": user["role"].partition(" / ")[2] or None}
+
+    def change_password(self, email: str, current: str, new: str) -> bool:
+        problem = auth.password_problem(new)
+        if problem:
+            raise ValueError(problem)
+        if self.authenticate(email, current) is None:
+            return False
+        db.run("UPDATE accounts SET password_hash = :hash, must_change_password = false WHERE email = :email",
+               hash=auth.hash_password(new), email=email.strip().lower())
+        return True
 
 cloud_sql_maas = CloudSQLMaaS()
