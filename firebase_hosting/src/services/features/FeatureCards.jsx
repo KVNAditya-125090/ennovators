@@ -10,7 +10,7 @@ import { Section, Btn, FormModal, Drawer, ErrorNote, Empty, label } from '../../
 const FIELD_TYPES = { int: 'number', num: 'number', text: 'textarea', obj: 'textarea', list: 'lines', date: 'date', dt: 'datetime-local', email: 'email', secret: 'password' };
 const HINTS = {
   list: 'One per line',
-  obj: 'JSON, for example {"key": "value"}',
+  obj: 'Plain text such as a town or city, or JSON for exact values',
   file: 'File name or link',
   secret: 'Kept private'
 };
@@ -36,7 +36,11 @@ function toParams(endpoint, values) {
     if (v === undefined) return;
     if (p.type === 'bool') out[p.name] = v === 'true';
     if (p.type === 'obj') {
-      try { out[p.name] = JSON.parse(v); } catch { throw new Error(`${label(p.name)} must be JSON, for example {"key": "value"}`); }
+      const text = String(v || '').trim();
+      if (!text) { delete out[p.name]; return; }
+      if (text.startsWith('{') || text.startsWith('[')) {
+        try { out[p.name] = JSON.parse(text); } catch { throw new Error(`${label(p.name)} looks like JSON but is not valid. Check the brackets and quotes, or type plain text.`); }
+      } else out[p.name] = text; // plain text, such as a town or city
     }
   });
   return out;
@@ -49,6 +53,32 @@ function Value({ value }) {
   if (value === null || value === undefined || value === '') return <span className="text-google-gray-400">—</span>;
   if (Array.isArray(value)) return <span>{value.map(String).join(', ')}</span>;
   if (typeof value === 'object') return <code className="text-sm break-all">{JSON.stringify(value)}</code>;
+  return <span className="break-words">{String(value)}</span>;
+}
+
+
+const pretty = (k) => label(k).replace(/\bpct\b/i, '%').replace(/\busd\b/i, '(USD)').replace(/\bid\b/i, 'ID');
+
+// Any result shown as plain labelled rows and cards, never as raw JSON
+function Readable({ value }) {
+  if (value === null || value === undefined || value === '') return <span className="text-google-gray-400">—</span>;
+  if (typeof value === 'boolean') return <span>{value ? 'Yes' : 'No'}</span>;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-google-gray-400">None</span>;
+    if (value.every((v) => v === null || typeof v !== 'object')) return <span className="break-words">{value.map(String).join(', ')}</span>;
+    return (
+      <ul className="space-y-2">
+        {value.map((v, i) => <li key={i} className="rounded-xl border border-google-gray-200 p-3"><Readable value={v} /></li>)}
+      </ul>
+    );
+  }
+  if (typeof value === 'object') {
+    return (
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        {Object.entries(value).map(([k, v]) => <React.Fragment key={k}><dt className="text-google-gray-500">{pretty(k)}</dt><dd className="min-w-0"><Readable value={v} /></dd></React.Fragment>)}
+      </dl>
+    );
+  }
   return <span className="break-words">{String(value)}</span>;
 }
 
@@ -78,7 +108,7 @@ function Result({ data }) {
           )}
         </div>
       )}
-      {!items && !record && <pre className="whitespace-pre-wrap break-all rounded-lg bg-google-gray-50 p-3 text-sm">{JSON.stringify(data, null, 2)}</pre>}
+      {!items && !record && <div className="rounded-xl border border-google-gray-200 p-3"><Readable value={data} /></div>}
     </div>
   );
 }

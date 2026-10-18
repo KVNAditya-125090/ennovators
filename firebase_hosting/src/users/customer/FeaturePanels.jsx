@@ -111,7 +111,11 @@ const typed = (endpoint, fields, values) => {
     const p = endpoint.parameters.find((x) => x.name === f.name);
     if (Array.isArray(raw)) out[f.name] = raw;
     else if (p.type === 'bool') out[f.name] = raw === 'true';
-    else if (p.type === 'obj') { try { out[f.name] = JSON.parse(raw); } catch { throw new Error(`${f.label} must be JSON, for example {"key": "value"}`); } }
+    else if (p.type === 'obj') {
+      const text = String(raw).trim();
+      if (text.startsWith('{') || text.startsWith('[')) { try { out[f.name] = JSON.parse(text); } catch { throw new Error(`${f.label} looks like JSON but is not valid. Check the brackets and quotes, or type plain text.`); } }
+      else out[f.name] = text;
+    }
     else if (f.type === 'number') out[f.name] = Number(raw);
     else if (f.type === 'lines') out[f.name] = String(raw).split('\n').map((x) => x.trim()).filter(Boolean);
     else out[f.name] = raw;
